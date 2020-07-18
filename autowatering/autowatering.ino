@@ -1,16 +1,18 @@
 // Pins
-#define DHT_PIN D4  
-#define VALVE1_PIN D5        
-#define VALVE2_PIN D6        
-#define VALVE3_PIN D7        
-#define PUMP_PIN D8 
+#define DHT_PIN D4
+#define VALVE1_PIN D5
+#define VALVE2_PIN D6
+#define VALVE3_PIN D7
+#define PUMP_PIN D8
 
 // Config
 #include "config.h"
 #ifdef ENABLE_DEBUG
 #define DEBUG_PRINTLN(...) Serial.println(__VA_ARGS__);
+#define DEBUG_PRINT(...) Serial.print(__VA_ARGS__);
 #else
 #define DEBUG_PRINTLN(...)
+#define DEBUG_PRINT(...)
 #endif
 
 // WIFI&OTA&FS
@@ -28,19 +30,16 @@ volatile int watchdogCount = 1;
 #include <WiFiUdp.h>
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "ntp.aliyun.com");
-// FIXME: Sometime it can't connect to ntp server, may causeed by router.
 
 // Json
 #include <ArduinoJson.h>
 
-// SocketIO
-#include <SocketIoClient.h>
-#ifdef ENABLE_SSL
-#define beginwebsocket beginSSL
-#else
-#define beginwebsocket begin
-#endif
-SocketIoClient socketIO;
+// MQTT
+#include <PubSubClient.h>
+WiFiClient espClient;
+PubSubClient client(espClient);
+String device_status_topic = "device/" + String(device_id) + "/status";
+String device_set_topic = "device/" + String(device_id) + "/set";
 
 // DHT
 #include <dht.h>
@@ -66,8 +65,8 @@ unsigned long valve2Millis = 0; // Valve Auto Close Timer
 bool valve2_auto_close = false; // Valve Auto Close Switch
 unsigned long valve3Millis = 0; // Valve Auto Close Timer
 bool valve3_auto_close = false; // Valve Auto Close Switch
-unsigned long pumpMillis = 0;  // Pump Auto Close Timer
-bool pump_auto_close = false;  // Pump Auto Close Switch
+unsigned long pumpMillis = 0;   // Pump Auto Close Timer
+bool pump_auto_close = false;   // Pump Auto Close Switch
 bool valve1 = false;
 bool valve2 = false;
 bool valve3 = false;
@@ -75,12 +74,15 @@ bool pump = false;
 unsigned long valve1_delay = 60; // Valve Auto Close Delay (seconds)
 unsigned long valve2_delay = 60; // Valve Auto Close Delay (seconds)
 unsigned long valve3_delay = 60; // Valve Auto Close Delay (seconds)
-unsigned long pump_delay = 60;  // Pump Auto Close Delay (seconds)
+unsigned long pump_delay = 60;   // Pump Auto Close Delay (seconds)
 
 bool need_save_config = false;
 
-void event(const char *payload, size_t length)
+void callback(char *topic, byte *payload, unsigned int length)
 {
+  DEBUG_PRINTLN("Message arrived [");
+  DEBUG_PRINTLN(topic);
+  DEBUG_PRINTLN("] ");
   const size_t capacity = JSON_OBJECT_SIZE(8) + 150;
   DynamicJsonDocument doc(capacity);
   auto error = deserializeJson(doc, payload);
@@ -166,13 +168,18 @@ void setup_wifi()
 {
   delay(10);
   WiFi.mode(WIFI_STA);
-  // We start by connecting to a WiFi network
   WiFi.begin(ssid, password);
-  while (WiFi.waitForConnectResult() != WL_CONNECTED)
+  DEBUG_PRINTLN("Connecting");
+  while (WiFi.status() != WL_CONNECTED)
   {
-    delay(5000);
-    ESP.restart();
+    delay(500);
+    DEBUG_PRINT(".");
   }
+  DEBUG_PRINTLN();
+
+  DEBUG_PRINT("Connected, IP address: ");
+  DEBUG_PRINTLN(WiFi.localIP());
+  DEBUG_PRINTLN("WiFi connected!");
 }
 
 // Read sensor data
@@ -215,7 +222,7 @@ void upload(bool reset)
   char msg[200];
   payload.toCharArray(msg, 200);
 
-  socketIO.emit("devicedata", msg);
+  client.publish(device_status_topic.c_str(), msg);
 
   if (reset)
     lastMillis = millis(); // Reset the upload data timer
@@ -284,9 +291,34 @@ bool save_config()
 void ISRwatchdog()
 {
   watchdogCount++;
-  if (watchdogCount > 10) // Not Responding for 10 seconds, it will reset the board.
+  if (watchdogCount > 60) // Not Responding for 60 seconds, it will reset the board.
   {
     ESP.reset();
+  }
+}
+
+void reconnect()
+{
+  // Loop until we're reconnected
+  while (!client.connected())
+  {
+    DEBUG_PRINTLN("Attempting MQTT connection...");
+    String clientId = String(device_id) + "-";
+    clientId += String(random(0xffff), HEX);
+    // Attempt to connect
+    if (client.connect(clientId.c_str(), mqtt_username, mqtt_password))
+    {
+      DEBUG_PRINTLN("connected");
+      client.subscribe(device_set_topic.c_str());
+    }
+    else
+    {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      DEBUG_PRINTLN(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
   }
 }
 
@@ -309,6 +341,9 @@ void setup()
   if (!load_config())
     save_config(); // Read config, or save default settings.
 
+  // Watchdog
+  secondTick.attach(1, ISRwatchdog);
+
   setup_wifi(); // Setup Wi-Fi
 
   timeClient.begin(); // Start NTC service
@@ -322,16 +357,9 @@ void setup()
   });
   ArduinoOTA.begin();
 
-  // WebSocket
-  socketIO.beginwebsocket(server_url, server_port);
-  socketIO.setAuthorization(admin_name, admin_password);
-
-  char buf[16];
-  itoa(device_id, buf, 10);
-  socketIO.on(buf, event);
-
-  // Watchdog
-  secondTick.attach(1, ISRwatchdog);
+  // MQTT
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(callback);
 }
 
 void loop()
@@ -340,7 +368,13 @@ void loop()
 
   ArduinoOTA.handle(); // OTA
   timeClient.update(); // NTP
-  socketIO.loop();     // Websocket
+
+  // MQTT
+  if (!client.connected())
+  {
+    reconnect();
+  }
+  client.loop();
 
   // Upload data every 10 seconds
   if (millis() - lastMillis > 10000)
@@ -373,7 +407,6 @@ void loop()
     digitalWrite(VALVE3_PIN, valve3);
     upload(0);
   }
-
   // Close pump after certain delay
   if (pump_auto_close && millis() - pumpMillis > 1000 * pump_delay)
   {
