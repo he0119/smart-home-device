@@ -231,9 +231,10 @@ void upload(bool reset)
 
 bool load_config()
 {
-  File configFile = SPIFFS.open("/config.json", "r");
+  File configFile = SPIFFS.open("/config.json");
   if (!configFile)
   {
+    DEBUG_PRINTLN("Read config failed");
     return false;
   }
 
@@ -278,13 +279,15 @@ bool save_config()
   doc["pump_delay"] = pump_delay;
   // -----------------------
 
-  File configFile = SPIFFS.open("/config.json", "w");
+  File configFile = SPIFFS.open("/config.json", FILE_WRITE);
   if (!configFile)
   {
+    DEBUG_PRINTLN("Write config failed");
     return false;
   }
 
   serializeJson(doc, configFile);
+  configFile.close();
   return true;
 }
 
@@ -338,7 +341,11 @@ void setup()
   digitalWrite(VALVE2_PIN, LOW);
   digitalWrite(VALVE3_PIN, LOW); //Off
 
-  SPIFFS.begin(); //FS
+  if (!SPIFFS.begin(true))
+  {
+    DEBUG_PRINTLN("SPIFFS Mount Failed");
+    return;
+  }
   if (!load_config())
     save_config(); // Read config, or save default settings.
 
