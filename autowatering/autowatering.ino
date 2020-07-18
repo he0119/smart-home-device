@@ -310,8 +310,8 @@ void reconnect()
   while (!client.connected())
   {
     DEBUG_PRINTLN("Attempting MQTT connection...");
-    String clientId = String(device_id) + "-";
-    clientId += String(random(0xffff), HEX);
+    // 客户端 ID 和设备 ID 一致
+    String clientId = String(device_id);
     // Attempt to connect
     if (client.connect(clientId.c_str(), mqtt_username, mqtt_password))
     {
