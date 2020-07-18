@@ -1,5 +1,0 @@
-ESP8266 core for Arduino: 2.7.2
-NTPClient: 3.2.0
-ArduinoJson: 6.15.2
-PubSubClient: 2.8
-DHTstable: 0.2.4

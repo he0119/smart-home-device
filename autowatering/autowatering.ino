@@ -1,9 +1,9 @@
 // Pins
-#define DHT_PIN D4
-#define VALVE1_PIN D5
-#define VALVE2_PIN D6
-#define VALVE3_PIN D7
-#define PUMP_PIN D8
+#define DHT_PIN 32
+#define VALVE1_PIN 33
+#define VALVE2_PIN 25
+#define VALVE3_PIN 26
+#define PUMP_PIN 27
 
 // Config
 #include "config.h"
@@ -16,9 +16,10 @@
 #endif
 
 // WIFI&OTA&FS
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 #include <ArduinoOTA.h>
 #include <FS.h>
+#include "SPIFFS.h"
 
 // Ticker&Watchdog
 #include <Ticker.h>
@@ -92,7 +93,7 @@ void callback(char *topic, byte *payload, unsigned int length)
     return;
   }
 
-  if (doc["valve1"] != "null")
+  if (doc.containsKey("valve1"))
   {
     valve1 = doc["valve1"];
     if (valve1)
@@ -101,7 +102,7 @@ void callback(char *topic, byte *payload, unsigned int length)
       valve1Millis = millis(); // Reset timer
     }
   }
-  if (doc["valve2"] != "null")
+  if (doc.containsKey("valve2"))
   {
     valve2 = doc["valve2"];
     if (valve2)
@@ -110,7 +111,7 @@ void callback(char *topic, byte *payload, unsigned int length)
       valve2Millis = millis(); // Reset timer
     }
   }
-  if (doc["valve3"] != "null")
+  if (doc.containsKey("valve3"))
   {
     valve3 = doc["valve3"];
     if (valve3)
@@ -119,7 +120,7 @@ void callback(char *topic, byte *payload, unsigned int length)
       valve3Millis = millis(); // Reset timer
     }
   }
-  if (doc["pump"] != "null")
+  if (doc.containsKey("pump"))
   {
     pump = doc["pump"];
     if (pump)
@@ -129,22 +130,22 @@ void callback(char *topic, byte *payload, unsigned int length)
     }
   }
 
-  if (doc["valve1_delay"] != "null")
+  if (doc.containsKey("valve1_delay"))
   {
     valve1_delay = doc["valve1_delay"];
     need_save_config = true;
   }
-  if (doc["valve2_delay"] != "null")
+  if (doc.containsKey("valve2_delay"))
   {
     valve2_delay = doc["valve2_delay"];
     need_save_config = true;
   }
-  if (doc["valve3_delay"] != "null")
+  if (doc.containsKey("valve3_delay"))
   {
     valve3_delay = doc["valve3_delay"];
     need_save_config = true;
   }
-  if (doc["pump_delay"] != "null")
+  if (doc.containsKey("pump_delay"))
   {
     pump_delay = doc["pump_delay"];
     need_save_config = true;
@@ -167,12 +168,12 @@ void callback(char *topic, byte *payload, unsigned int length)
 void setup_wifi()
 {
   delay(10);
-  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  DEBUG_PRINTLN("Connecting");
+  DEBUG_PRINT("Connecting to ");
+  DEBUG_PRINTLN(ssid);
   while (WiFi.status() != WL_CONNECTED)
   {
-    delay(500);
+    delay(1000);
     DEBUG_PRINT(".");
   }
   DEBUG_PRINTLN();
@@ -293,7 +294,7 @@ void ISRwatchdog()
   watchdogCount++;
   if (watchdogCount > 60) // Not Responding for 60 seconds, it will reset the board.
   {
-    ESP.reset();
+    ESP.restart();
   }
 }
 
@@ -341,9 +342,6 @@ void setup()
   if (!load_config())
     save_config(); // Read config, or save default settings.
 
-  // Watchdog
-  secondTick.attach(1, ISRwatchdog);
-
   setup_wifi(); // Setup Wi-Fi
 
   timeClient.begin(); // Start NTC service
@@ -360,6 +358,9 @@ void setup()
   // MQTT
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
+
+  // Watchdog
+  secondTick.attach(1, ISRwatchdog);
 }
 
 void loop()
