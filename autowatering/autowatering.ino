@@ -204,24 +204,24 @@ void read_data()
 
 void upload(bool reset)
 {
-  String payload = String("{\"data\":\"");
-  payload += String(data_readtime);
-  payload += "," + String(device_id);
-  payload += "|" + String(temperature);
-  payload += "," + String(relative_humidity);
-  payload += "," + String(valve1);
-  payload += "," + String(valve2);
-  payload += "," + String(valve3);
-  payload += "," + String(pump);
-  payload += "," + String(valve1_delay);
-  payload += "," + String(valve2_delay);
-  payload += "," + String(valve3_delay);
-  payload += "," + String(pump_delay);
-  payload += "," + String(wifi_signal);
-  payload += "\"}";
+  const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(11);
+  DynamicJsonDocument doc(capacity);
 
-  char msg[200];
-  payload.toCharArray(msg, 200);
+  doc["device_id"] = device_id;
+  doc["timestamp"] = data_readtime;
+  JsonObject data = doc.createNestedObject("data");
+  data["valve1"] = valve1;
+  data["valve2"] = valve2;
+  data["valve3"] = valve3;
+  data["pump"] = pump;
+  data["valve1_delay"] = valve1_delay;
+  data["valve2_delay"] = valve2_delay;
+  data["valve3_delay"] = valve3_delay;
+  data["pump_delay"] = pump_delay;
+  data["wifi_signal"] = wifi_signal;
+
+  char msg[300];
+  serializeJson(doc, msg);
 
   client.publish(device_status_topic.c_str(), msg);
 
