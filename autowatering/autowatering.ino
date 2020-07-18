@@ -210,6 +210,8 @@ void upload(bool reset)
   doc["device_id"] = device_id;
   doc["timestamp"] = data_readtime;
   JsonObject data = doc.createNestedObject("data");
+  data["temperature"] = temperature;
+  data["humidity"] = relative_humidity;
   data["valve1"] = valve1;
   data["valve2"] = valve2;
   data["valve3"] = valve3;
