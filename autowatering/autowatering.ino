@@ -301,6 +301,7 @@ void ISRwatchdog()
   }
 }
 
+// MQTT 连接
 void reconnect()
 {
   // Loop until we're reconnected
@@ -313,12 +314,12 @@ void reconnect()
     if (client.connect(clientId.c_str(), mqtt_username, mqtt_password))
     {
       DEBUG_PRINTLN("connected");
-      client.subscribe(device_set_topic.c_str());
+      client.subscribe(device_set_topic.c_str(), 1);
     }
     else
     {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
+      DEBUG_PRINT("failed, rc=");
+      DEBUG_PRINT(client.state());
       DEBUG_PRINTLN(" try again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);
