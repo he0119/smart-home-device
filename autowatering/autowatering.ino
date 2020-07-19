@@ -306,26 +306,22 @@ void ISRwatchdog()
 // MQTT 连接
 void reconnect()
 {
-  // Loop until we're reconnected
-  while (!client.connected())
+  DEBUG_PRINTLN("Attempting MQTT connection...");
+  // 客户端 ID 和设备 ID 一致
+  String clientId = String(device_id);
+  // Attempt to connect
+  if (client.connect(clientId.c_str(), mqtt_username, mqtt_password))
   {
-    DEBUG_PRINTLN("Attempting MQTT connection...");
-    // 客户端 ID 和设备 ID 一致
-    String clientId = String(device_id);
-    // Attempt to connect
-    if (client.connect(clientId.c_str(), mqtt_username, mqtt_password))
-    {
-      DEBUG_PRINTLN("connected");
-      client.subscribe(device_set_topic.c_str(), 1);
-    }
-    else
-    {
-      DEBUG_PRINT("failed, rc=");
-      DEBUG_PRINT(client.state());
-      DEBUG_PRINTLN(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
+    DEBUG_PRINTLN("connected");
+    client.subscribe(device_set_topic.c_str(), 1);
+  }
+  else
+  {
+    DEBUG_PRINT("failed, rc=");
+    DEBUG_PRINT(client.state());
+    DEBUG_PRINTLN(" try again in 1 seconds");
+    // Wait 1 seconds before retrying
+    delay(1000);
   }
 }
 
