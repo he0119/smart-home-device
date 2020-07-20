@@ -10,3 +10,4 @@ const int device_id = 1;               // 设备 ID，与服务器一致
 const char *mqtt_username = "";        // MQTT 用户名密码
 const char *mqtt_password = "";
 #define DHT_VERSION_22 // DHT 版本 11 或者 22
+// #define ENABLE_DEBUG   // 调试模式
