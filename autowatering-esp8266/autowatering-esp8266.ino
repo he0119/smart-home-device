@@ -198,10 +198,9 @@ void read_data()
 
 void upload(bool reset)
 {
-  const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(11);
+  const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(11);
   DynamicJsonDocument doc(capacity);
 
-  doc["device_name"] = device_name;
   doc["timestamp"] = data_readtime;
   JsonObject data = doc.createNestedObject("data");
   data["temperature"] = temperature;
@@ -300,10 +299,9 @@ void ISRwatchdog()
 void reconnect()
 {
   DEBUG_PRINTLN("Attempting MQTT connection...");
-  // 客户端 ID 和设备 ID 一致
-  String clientId = String(device_name);
+  // 客户端 ID 和设备名称一致
   // Attempt to connect
-  if (client.connect(clientId.c_str(), device_name, mqtt_password))
+  if (client.connect(device_name, device_name, mqtt_password))
   {
     DEBUG_PRINTLN("connected");
     client.subscribe(device_set_topic.c_str(), 1);
@@ -312,7 +310,7 @@ void reconnect()
   {
     DEBUG_PRINT("failed, rc=");
     DEBUG_PRINT(client.state());
-    DEBUG_PRINTLN(" try again in 1 seconds");
+    DEBUG_PRINTLN("try again in 1 seconds");
     // Wait 1 seconds before retrying
     delay(1000);
   }
