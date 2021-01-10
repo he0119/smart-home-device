@@ -6,7 +6,6 @@ const char *password = ""; // WiFi 密码
 
 const char *mqtt_server = "127.0.0.1"; // 服务器地址
 const int mqtt_port = 1883;            // 服务器端口
-const int device_id = 1;               // 设备 ID，与服务器一致
 const char *mqtt_username = "";        // MQTT 用户名密码
 const char *mqtt_password = "";
 #define DHT_VERSION_22 // DHT 版本 11 或者 22

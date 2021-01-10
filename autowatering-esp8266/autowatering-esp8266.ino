@@ -38,8 +38,8 @@ NTPClient timeClient(ntpUDP, "ntp.aliyun.com");
 #include <PubSubClient.h>
 WiFiClient espClient;
 PubSubClient client(espClient);
-String device_status_topic = "device/" + String(device_id) + "/status";
-String device_set_topic = "device/" + String(device_id) + "/set";
+String device_status_topic = "device/" + String(device_name) + "/status";
+String device_set_topic = "device/" + String(device_name) + "/set";
 
 // DHT
 #include <dht.h>
@@ -201,7 +201,7 @@ void upload(bool reset)
   const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(11);
   DynamicJsonDocument doc(capacity);
 
-  doc["device_id"] = device_id;
+  doc["device_name"] = device_name;
   doc["timestamp"] = data_readtime;
   JsonObject data = doc.createNestedObject("data");
   data["temperature"] = temperature;
@@ -301,9 +301,9 @@ void reconnect()
 {
   DEBUG_PRINTLN("Attempting MQTT connection...");
   // 客户端 ID 和设备 ID 一致
-  String clientId = String(device_id);
+  String clientId = String(device_name);
   // Attempt to connect
-  if (client.connect(clientId.c_str(), mqtt_username, mqtt_password))
+  if (client.connect(clientId.c_str(), device_name, mqtt_password))
   {
     DEBUG_PRINTLN("connected");
     client.subscribe(device_set_topic.c_str(), 1);
