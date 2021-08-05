@@ -5,6 +5,13 @@
 #define VALVE3_PIN D7
 #define PUMP_PIN D8
 
+// Button
+#include "OneButton.h"
+OneButton valve1_btn(D0);
+OneButton valve2_btn(D1);
+OneButton valve3_btn(D2);
+OneButton pump_btn(D3);
+
 // Config
 #ifdef ENABLE_DEBUG
 #include "config.test.h"
@@ -332,6 +339,45 @@ void setup()
   digitalWrite(VALVE2_PIN, LOW);
   digitalWrite(VALVE3_PIN, LOW); //Off
 
+  // Button
+  // Single Click event attachment with lambda
+  valve1_btn.attachClick([]() {
+    DEBUG_PRINTLN("Valve1 Pressed!");
+    valve1 = !valve1;
+    if (valve1) {
+      valve1_auto_close = true;
+    }
+    digitalWrite(VALVE1_PIN, valve1);
+    upload(0);
+  });
+  valve2_btn.attachClick([]() {
+    DEBUG_PRINTLN("Valve2 Pressed!");
+    valve2 = !valve2;
+    if (valve2) {
+      valve2_auto_close = true;
+    }
+    digitalWrite(VALVE2_PIN, valve2);
+    upload(0);
+  });
+  valve2_btn.attachClick([]() {
+    DEBUG_PRINTLN("Valve2 Pressed!");
+    valve2 = !valve2;
+    if (valve2) {
+      valve2_auto_close = true;
+    }
+    digitalWrite(VALVE2_PIN, valve2);
+    upload(0);
+  });
+  pump_btn.attachClick([]() {
+    DEBUG_PRINTLN("Pump Pressed!");
+    pump = !pump;
+    if (pump) {
+      pump_auto_close = true;
+    }
+    digitalWrite(PUMP_PIN, pump);
+    upload(0);
+  });
+
   SPIFFS.begin(); //FS
   if (!load_config())
     save_config(); // Read config, or save default settings.
@@ -364,6 +410,12 @@ void loop()
 
   ArduinoOTA.handle(); // OTA
   timeClient.update(); // NTP
+
+  // keep watching the push button:
+  valve1_btn.tick();
+  valve2_btn.tick();
+  valve3_btn.tick();
+  pump_btn.tick();
 
   // MQTT
   if (!client.connected())

@@ -7,3 +7,4 @@
 - [ArduinoJson](https://github.com/bblanchon/ArduinoJson): 6.18.3
 - [PubSubClient](https://github.com/knolleary/pubsubclient): 2.8
 - [DHTstable](https://github.com/RobTillaart/Arduino/tree/master/libraries/DHTstable): 1.0.1
+- [OneButton](https://github.com/mathertel/OneButton): 2.0.1
