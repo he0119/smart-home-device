@@ -6,11 +6,12 @@
 #define PUMP_PIN D8
 
 // Config
-#include "config.h"
 #ifdef ENABLE_DEBUG
+#include "config.test.h"
 #define DEBUG_PRINTLN(...) Serial.println(__VA_ARGS__);
 #define DEBUG_PRINT(...) Serial.print(__VA_ARGS__);
 #else
+#include "config.h"
 #define DEBUG_PRINTLN(...)
 #define DEBUG_PRINT(...)
 #endif
@@ -42,14 +43,14 @@ String device_status_topic = "device/" + String(device_name) + "/status";
 String device_set_topic = "device/" + String(device_name) + "/set";
 
 // DHT
-#include <dht.h>
+#include <DHTStable.h>
 #ifdef DHT_VERSION_11
 #define readdht read11
 #endif
 #ifdef DHT_VERSION_22
 #define readdht read22
 #endif
-dht DHT;
+DHTStable DHT;
 
 // Status
 unsigned long lastMillis = 0; // Upload Data Timer
@@ -184,8 +185,8 @@ void read_data()
   switch (chk)
   {
   case DHTLIB_OK:
-    relative_humidity = DHT.humidity;
-    temperature = DHT.temperature;
+    relative_humidity = DHT.getHumidity();
+    temperature = DHT.getTemperature();
     break;
   default:
     relative_humidity = NULL;
@@ -342,10 +343,11 @@ void setup()
   // OTA
   ArduinoOTA.setPort(8266);
   ArduinoOTA.setHostname(device_name);
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    DEBUG_PRINTLN((float)progress / total * 100);
-    watchdogCount = 1; // Feed dog while doing update
-  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
+                        {
+                          DEBUG_PRINTLN((float)progress / total * 100);
+                          watchdogCount = 1; // Feed dog while doing update
+                        });
   ArduinoOTA.begin();
 
   // MQTT
