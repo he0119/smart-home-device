@@ -14,8 +14,12 @@ OneButton pump_btn(D3);
 
 // Config
 #ifdef CI_TESTING
+
 #include "config.example.h"
-#endif
+#define DEBUG_PRINTLN(...)
+#define DEBUG_PRINT(...)
+
+#else
 
 #ifdef ENABLE_DEBUG
 #include "config.test.h"
@@ -25,6 +29,8 @@ OneButton pump_btn(D3);
 #include "config.h"
 #define DEBUG_PRINTLN(...)
 #define DEBUG_PRINT(...)
+#endif
+
 #endif
 
 // WIFI&OTA&FS
@@ -345,42 +351,50 @@ void setup()
 
   // Button
   // Single Click event attachment with lambda
-  valve1_btn.attachClick([]() {
-    DEBUG_PRINTLN("Valve1 Pressed!");
-    valve1 = !valve1;
-    if (valve1) {
-      valve1_auto_close = true;
-    }
-    digitalWrite(VALVE1_PIN, valve1);
-    upload(0);
-  });
-  valve2_btn.attachClick([]() {
-    DEBUG_PRINTLN("Valve2 Pressed!");
-    valve2 = !valve2;
-    if (valve2) {
-      valve2_auto_close = true;
-    }
-    digitalWrite(VALVE2_PIN, valve2);
-    upload(0);
-  });
-  valve2_btn.attachClick([]() {
-    DEBUG_PRINTLN("Valve2 Pressed!");
-    valve2 = !valve2;
-    if (valve2) {
-      valve2_auto_close = true;
-    }
-    digitalWrite(VALVE2_PIN, valve2);
-    upload(0);
-  });
-  pump_btn.attachClick([]() {
-    DEBUG_PRINTLN("Pump Pressed!");
-    pump = !pump;
-    if (pump) {
-      pump_auto_close = true;
-    }
-    digitalWrite(PUMP_PIN, pump);
-    upload(0);
-  });
+  valve1_btn.attachClick([]()
+                         {
+                           DEBUG_PRINTLN("Valve1 Pressed!");
+                           valve1 = !valve1;
+                           if (valve1)
+                           {
+                             valve1_auto_close = true;
+                           }
+                           digitalWrite(VALVE1_PIN, valve1);
+                           upload(0);
+                         });
+  valve2_btn.attachClick([]()
+                         {
+                           DEBUG_PRINTLN("Valve2 Pressed!");
+                           valve2 = !valve2;
+                           if (valve2)
+                           {
+                             valve2_auto_close = true;
+                           }
+                           digitalWrite(VALVE2_PIN, valve2);
+                           upload(0);
+                         });
+  valve2_btn.attachClick([]()
+                         {
+                           DEBUG_PRINTLN("Valve2 Pressed!");
+                           valve2 = !valve2;
+                           if (valve2)
+                           {
+                             valve2_auto_close = true;
+                           }
+                           digitalWrite(VALVE2_PIN, valve2);
+                           upload(0);
+                         });
+  pump_btn.attachClick([]()
+                       {
+                         DEBUG_PRINTLN("Pump Pressed!");
+                         pump = !pump;
+                         if (pump)
+                         {
+                           pump_auto_close = true;
+                         }
+                         digitalWrite(PUMP_PIN, pump);
+                         upload(0);
+                       });
 
   SPIFFS.begin(); //FS
   if (!load_config())
