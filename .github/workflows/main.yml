@@ -10,7 +10,7 @@ on:
     types: [published]
 
 env:
-  arduino-board: 'esp8266:esp8266'
+  arduino-board: 'esp8266:esp8266@3.0.2'
   arduino-platform: 'esp8266:esp8266:nodemcuv2'
 
 jobs:
