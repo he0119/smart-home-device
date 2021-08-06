@@ -13,6 +13,10 @@ OneButton valve3_btn(D2);
 OneButton pump_btn(D3);
 
 // Config
+#ifdef CI_TESTING
+#include "config.example.h"
+#endif
+
 #ifdef ENABLE_DEBUG
 #include "config.test.h"
 #define DEBUG_PRINTLN(...) Serial.println(__VA_ARGS__);
