@@ -29,4 +29,4 @@ jobs:
           arduino-cli core update-index
           arduino-cli core install ${{ env.arduino-board }}
       - name: Compile Sketch
-        run: arduino-cli compile --build-property "build.extra_flags=-DENABLE_DEBUG" --fqbn ${{ env.arduino-platform }} .\autowatering-esp8266\autowatering-esp8266.ino
+        run: arduino-cli compile --build-property "build.extra_flags=-DENABLE_DEBUG" --fqbn ${{ env.arduino-platform }} ./autowatering-esp8266/autowatering-esp8266.ino
