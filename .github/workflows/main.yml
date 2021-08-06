@@ -35,4 +35,4 @@ jobs:
           arduino-cli lib install "PubSubClient@2.8.0"
           arduino-cli lib install "DHTstable@0.2.9"
       - name: Compile sketch
-        run: arduino-cli compile --build-property "build.extra_flags=-CI_TESTING" --fqbn ${{ env.arduino-platform }} ./autowatering-esp8266/autowatering-esp8266.ino
+        run: arduino-cli compile --build-property "build.extra_flags=-DCI_TESTING" --fqbn ${{ env.arduino-platform }} ./autowatering-esp8266/autowatering-esp8266.ino
