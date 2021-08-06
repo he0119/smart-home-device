@@ -6,7 +6,11 @@
 #define PUMP_PIN D8
 
 // Config
+#ifdef CI_TESTING
+#include "config.example.h"
+#else
 #include "config.h"
+#endif
 #ifdef ENABLE_DEBUG
 #define DEBUG_PRINTLN(...) Serial.println(__VA_ARGS__);
 #define DEBUG_PRINT(...) Serial.print(__VA_ARGS__);
