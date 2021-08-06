@@ -33,6 +33,6 @@ jobs:
           arduino-cli lib install "NTPClient@3.2.0"
           arduino-cli lib install "ArduinoJson@6.17.2"
           arduino-cli lib install "PubSubClient@2.8.0"
-          arduino-cli lib install "DHTstable@0.2.4"
+          arduino-cli lib install "DHTstable@0.2.9"
       - name: Compile sketch
         run: arduino-cli compile --build-property "build.extra_flags=-DENABLE_DEBUG" --fqbn ${{ env.arduino-platform }} ./autowatering-esp8266/autowatering-esp8266.ino
