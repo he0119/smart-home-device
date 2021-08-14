@@ -5,18 +5,32 @@
 #define VALVE3_PIN D7
 #define PUMP_PIN D8
 
+// Button
+#include "OneButton.h"
+OneButton valve1_btn(D1, false, false);
+OneButton valve2_btn(D2, false, false);
+OneButton valve3_btn(9, false, false); //SD2
+OneButton pump_btn(10, false, false);  //SD3
+
 // Config
 #ifdef CI_TESTING
+
 #include "config.example.h"
+#define DEBUG_PRINTLN(...)
+#define DEBUG_PRINT(...)
+
 #else
-#include "config.h"
-#endif
+
 #ifdef ENABLE_DEBUG
+#include "config.test.h"
 #define DEBUG_PRINTLN(...) Serial.println(__VA_ARGS__);
 #define DEBUG_PRINT(...) Serial.print(__VA_ARGS__);
 #else
+#include "config.h"
 #define DEBUG_PRINTLN(...)
 #define DEBUG_PRINT(...)
+#endif
+
 #endif
 
 // WIFI&OTA&FS
@@ -46,14 +60,14 @@ String device_status_topic = "device/" + String(device_name) + "/status";
 String device_set_topic = "device/" + String(device_name) + "/set";
 
 // DHT
-#include <dht.h>
+#include <DHTStable.h>
 #ifdef DHT_VERSION_11
 #define readdht read11
 #endif
 #ifdef DHT_VERSION_22
 #define readdht read22
 #endif
-dht DHT;
+DHTStable DHT;
 
 // Status
 unsigned long lastMillis = 0; // Upload Data Timer
@@ -62,25 +76,110 @@ float relative_humidity;
 unsigned long data_readtime;
 long wifi_signal;
 
-// Pump&Valve
-unsigned long valve1Millis = 0; // Valve Auto Close Timer
-bool valve1_auto_close = false; // Valve Auto Close Switch
-unsigned long valve2Millis = 0; // Valve Auto Close Timer
-bool valve2_auto_close = false; // Valve Auto Close Switch
-unsigned long valve3Millis = 0; // Valve Auto Close Timer
-bool valve3_auto_close = false; // Valve Auto Close Switch
-unsigned long pumpMillis = 0;   // Pump Auto Close Timer
-bool pump_auto_close = false;   // Pump Auto Close Switch
-bool valve1 = false;
-bool valve2 = false;
-bool valve3 = false;
-bool pump = false;
-unsigned long valve1_delay = 60; // Valve Auto Close Delay (seconds)
-unsigned long valve2_delay = 60; // Valve Auto Close Delay (seconds)
-unsigned long valve3_delay = 60; // Valve Auto Close Delay (seconds)
-unsigned long pump_delay = 60;   // Pump Auto Close Delay (seconds)
-
 bool need_save_config = false;
+
+void upload(bool reset);
+
+// relay
+class Relay
+{
+private:
+  int m_pin;
+  bool m_status;
+  unsigned long m_open_at;
+  bool m_auto_close = false;
+  unsigned long m_delay = 60; // Auto Close Delay (seconds)
+
+public:
+  Relay(int pin)
+  {
+    m_pin = pin;
+  };
+  void set_status(bool status)
+  {
+    m_status = status;
+    digitalWrite(m_pin, m_status);
+  };
+  void set_delay(unsigned long delay)
+  {
+    m_delay = delay;
+  };
+  bool status()
+  {
+    return m_status;
+  };
+  unsigned long delay()
+  {
+    return m_delay;
+  };
+  void open()
+  {
+    m_auto_close = true;
+    m_open_at = millis(); // Reset timer
+    m_status = true;
+    digitalWrite(m_pin, m_status);
+    upload(0);
+  };
+  void close()
+  {
+    m_auto_close = false;
+    m_status = false;
+    digitalWrite(m_pin, m_status);
+    upload(0);
+  };
+  void toggle()
+  {
+    if (m_status)
+    {
+      close();
+    }
+    else
+    {
+      open();
+    }
+  };
+  void tick()
+  {
+    if (m_auto_close && millis() - m_open_at > 1000 * m_delay)
+    {
+      close();
+    }
+  };
+};
+Relay valve1(VALVE1_PIN);
+Relay valve2(VALVE2_PIN);
+Relay valve3(VALVE3_PIN);
+Relay pump(PUMP_PIN);
+
+void upload(bool reset)
+{
+  const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(11);
+  DynamicJsonDocument doc(capacity);
+
+  doc["timestamp"] = data_readtime;
+  JsonObject data = doc.createNestedObject("data");
+  data["temperature"] = temperature;
+  data["humidity"] = relative_humidity;
+  data["valve1"] = valve1.status();
+  data["valve2"] = valve2.status();
+  data["valve3"] = valve3.status();
+  data["pump"] = pump.status();
+  data["valve1_delay"] = valve1.delay();
+  data["valve2_delay"] = valve2.delay();
+  data["valve3_delay"] = valve3.delay();
+  data["pump_delay"] = pump.delay();
+  data["wifi_signal"] = wifi_signal;
+
+  char msg[300];
+  serializeJson(doc, msg);
+
+  DEBUG_PRINTLN("Upload status");
+  DEBUG_PRINTLN(msg);
+  client.publish(device_status_topic.c_str(), msg);
+
+  if (reset)
+    lastMillis = millis(); // Reset the upload data timer
+}
 
 void callback(char *topic, byte *payload, unsigned int length)
 {
@@ -98,66 +197,42 @@ void callback(char *topic, byte *payload, unsigned int length)
 
   if (doc.containsKey("valve1"))
   {
-    valve1 = doc["valve1"];
-    if (valve1)
-    {
-      valve1_auto_close = true;
-      valve1Millis = millis(); // Reset timer
-    }
+    doc["valve1"] ? valve1.open() : valve1.close();
   }
   if (doc.containsKey("valve2"))
   {
-    valve2 = doc["valve2"];
-    if (valve2)
-    {
-      valve2_auto_close = true;
-      valve2Millis = millis(); // Reset timer
-    }
+    doc["valve2"] ? valve2.open() : valve2.close();
   }
   if (doc.containsKey("valve3"))
   {
-    valve3 = doc["valve3"];
-    if (valve3)
-    {
-      valve3_auto_close = true;
-      valve3Millis = millis(); // Reset timer
-    }
+    doc["valve3"] ? valve3.open() : valve3.close();
   }
   if (doc.containsKey("pump"))
   {
-    pump = doc["pump"];
-    if (pump)
-    {
-      pump_auto_close = true;
-      pumpMillis = millis(); // Reset timer
-    }
+    doc["pump"] ? pump.open() : pump.close();
   }
 
   if (doc.containsKey("valve1_delay"))
   {
-    valve1_delay = doc["valve1_delay"];
+    valve1.set_delay(doc["valve1_delay"]);
     need_save_config = true;
   }
   if (doc.containsKey("valve2_delay"))
   {
-    valve2_delay = doc["valve2_delay"];
+    valve2.set_delay(doc["valve2_delay"]);
     need_save_config = true;
   }
   if (doc.containsKey("valve3_delay"))
   {
-    valve3_delay = doc["valve3_delay"];
+    valve3.set_delay(doc["valve3_delay"]);
     need_save_config = true;
   }
   if (doc.containsKey("pump_delay"))
   {
-    pump_delay = doc["pump_delay"];
+    pump.set_delay(doc["pump_delay"]);
     need_save_config = true;
   }
 
-  digitalWrite(PUMP_PIN, pump);
-  digitalWrite(VALVE1_PIN, valve1);
-  digitalWrite(VALVE2_PIN, valve2);
-  digitalWrite(VALVE3_PIN, valve3);
   data_readtime = timeClient.getEpochTime();
 
   upload(0);
@@ -188,8 +263,8 @@ void read_data()
   switch (chk)
   {
   case DHTLIB_OK:
-    relative_humidity = DHT.humidity;
-    temperature = DHT.temperature;
+    relative_humidity = DHT.getHumidity();
+    temperature = DHT.getTemperature();
     break;
   default:
     relative_humidity = NULL;
@@ -198,34 +273,6 @@ void read_data()
   }
   wifi_signal = WiFi.RSSI();
   data_readtime = timeClient.getEpochTime();
-}
-
-void upload(bool reset)
-{
-  const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(11);
-  DynamicJsonDocument doc(capacity);
-
-  doc["timestamp"] = data_readtime;
-  JsonObject data = doc.createNestedObject("data");
-  data["temperature"] = temperature;
-  data["humidity"] = relative_humidity;
-  data["valve1"] = valve1;
-  data["valve2"] = valve2;
-  data["valve3"] = valve3;
-  data["pump"] = pump;
-  data["valve1_delay"] = valve1_delay;
-  data["valve2_delay"] = valve2_delay;
-  data["valve3_delay"] = valve3_delay;
-  data["pump_delay"] = pump_delay;
-  data["wifi_signal"] = wifi_signal;
-
-  char msg[300];
-  serializeJson(doc, msg);
-
-  client.publish(device_status_topic.c_str(), msg);
-
-  if (reset)
-    lastMillis = millis(); // Reset the upload data timer
 }
 
 bool load_config()
@@ -257,10 +304,10 @@ bool load_config()
   }
 
   // Read Config-----------
-  valve1_delay = doc["valve1_delay"];
-  valve2_delay = doc["valve2_delay"];
-  valve3_delay = doc["valve3_delay"];
-  pump_delay = doc["pump_delay"];
+  valve1.set_delay(doc["valve1_delay"]);
+  valve2.set_delay(doc["valve2_delay"]);
+  valve3.set_delay(doc["valve3_delay"]);
+  pump.set_delay(doc["pump_delay"]);
   // ----------------------
 
   return true;
@@ -272,10 +319,10 @@ bool save_config()
   DynamicJsonDocument doc(capacity);
 
   // Save Config------------
-  doc["valve1_delay"] = valve1_delay;
-  doc["valve2_delay"] = valve2_delay;
-  doc["valve3_delay"] = valve3_delay;
-  doc["pump_delay"] = pump_delay;
+  doc["valve1_delay"] = valve1.delay();
+  doc["valve2_delay"] = valve2.delay();
+  doc["valve3_delay"] = valve3.delay();
+  doc["pump_delay"] = pump.delay();
   // -----------------------
 
   File configFile = SPIFFS.open("/config.json", "w");
@@ -335,6 +382,29 @@ void setup()
   digitalWrite(VALVE2_PIN, LOW);
   digitalWrite(VALVE3_PIN, LOW); //Off
 
+  // Button
+  // Single Click event attachment with lambda
+  valve1_btn.attachClick([]()
+                         {
+                           DEBUG_PRINTLN("Valve1 Pressed!");
+                           valve1.toggle();
+                         });
+  valve2_btn.attachClick([]()
+                         {
+                           DEBUG_PRINTLN("Valve2 Pressed!");
+                           valve2.toggle();
+                         });
+  valve3_btn.attachClick([]()
+                         {
+                           DEBUG_PRINTLN("Valve3 Pressed!");
+                           valve3.toggle();
+                         });
+  pump_btn.attachClick([]()
+                       {
+                         DEBUG_PRINTLN("Pump Pressed!");
+                         pump.toggle();
+                       });
+
   SPIFFS.begin(); //FS
   if (!load_config())
     save_config(); // Read config, or save default settings.
@@ -346,10 +416,11 @@ void setup()
   // OTA
   ArduinoOTA.setPort(8266);
   ArduinoOTA.setHostname(device_name);
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-    DEBUG_PRINTLN((float)progress / total * 100);
-    watchdogCount = 1; // Feed dog while doing update
-  });
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
+                        {
+                          DEBUG_PRINTLN((float)progress / total * 100);
+                          watchdogCount = 1; // Feed dog while doing update
+                        });
   ArduinoOTA.begin();
 
   // MQTT
@@ -367,6 +438,18 @@ void loop()
   ArduinoOTA.handle(); // OTA
   timeClient.update(); // NTP
 
+  // keep watching the push button:
+  valve1_btn.tick();
+  valve2_btn.tick();
+  valve3_btn.tick();
+  pump_btn.tick();
+
+  // Relays
+  valve1.tick();
+  valve2.tick();
+  valve3.tick();
+  pump.tick();
+
   // MQTT
   if (!client.connected())
   {
@@ -379,38 +462,5 @@ void loop()
   {
     read_data();
     upload(1);
-  }
-
-  // Close valve1 after certain delay
-  if (valve1_auto_close && millis() - valve1Millis > 1000 * valve1_delay)
-  {
-    valve1_auto_close = false;
-    valve1 = false;
-    digitalWrite(VALVE1_PIN, valve1);
-    upload(0);
-  }
-  // Close valve2 after certain delay
-  if (valve2_auto_close && millis() - valve2Millis > 1000 * valve2_delay)
-  {
-    valve2_auto_close = false;
-    valve2 = false;
-    digitalWrite(VALVE2_PIN, valve2);
-    upload(0);
-  }
-  // Close valve3 after certain delay
-  if (valve3_auto_close && millis() - valve3Millis > 1000 * valve3_delay)
-  {
-    valve3_auto_close = false;
-    valve3 = false;
-    digitalWrite(VALVE3_PIN, valve3);
-    upload(0);
-  }
-  // Close pump after certain delay
-  if (pump_auto_close && millis() - pumpMillis > 1000 * pump_delay)
-  {
-    pump_auto_close = false;
-    pump = false;
-    digitalWrite(PUMP_PIN, pump);
-    upload(0);
   }
 }
