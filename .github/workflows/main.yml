@@ -36,4 +36,4 @@ jobs:
           arduino-cli lib install "DHTstable@1.0.1"
           arduino-cli lib install "OneButton@2.0.1"
       - name: Compile sketch
-        run: arduino-cli compile --build-property "build.extra_flags=-DCI_TESTING" --fqbn ${{ env.arduino-platform }} ./autowatering-esp8266/autowatering-esp8266.ino
+        run: arduino-cli compile --build-property "build.extra_flags=-DCI_TESTING" --fqbn ${{ env.arduino-platform }} ./autowatering/autowatering.ino
