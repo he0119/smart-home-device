@@ -78,74 +78,8 @@ long wifi_signal;
 
 bool need_save_config = false;
 
-void upload(bool reset);
-
 // relay
-class Relay
-{
-private:
-  int m_pin;
-  bool m_status;
-  unsigned long m_open_at;
-  bool m_auto_close = false;
-  unsigned long m_delay = 60; // Auto Close Delay (seconds)
-
-public:
-  Relay(int pin)
-  {
-    m_pin = pin;
-  };
-  void set_status(bool status)
-  {
-    m_status = status;
-    digitalWrite(m_pin, m_status);
-  };
-  void set_delay(unsigned long delay)
-  {
-    m_delay = delay;
-  };
-  bool status()
-  {
-    return m_status;
-  };
-  unsigned long delay()
-  {
-    return m_delay;
-  };
-  void open()
-  {
-    m_auto_close = true;
-    m_open_at = millis(); // Reset timer
-    m_status = true;
-    digitalWrite(m_pin, m_status);
-    upload(0);
-  };
-  void close()
-  {
-    m_auto_close = false;
-    m_status = false;
-    digitalWrite(m_pin, m_status);
-    upload(0);
-  };
-  void toggle()
-  {
-    if (m_status)
-    {
-      close();
-    }
-    else
-    {
-      open();
-    }
-  };
-  void tick()
-  {
-    if (m_auto_close && millis() - m_open_at > 1000 * m_delay)
-    {
-      close();
-    }
-  };
-};
+#include "relay.h"
 Relay valve1(VALVE1_PIN);
 Relay valve2(VALVE2_PIN);
 Relay valve3(VALVE3_PIN);
