@@ -115,7 +115,7 @@ void upload(bool reset)
     lastMillis = millis(); // Reset the upload data timer
 }
 
-void callback(char *topic, byte *payload, unsigned int length)
+void callback(char* topic, byte* payload, unsigned int length)
 {
   DEBUG_PRINTLN("Message arrived [");
   DEBUG_PRINTLN(topic);
@@ -280,7 +280,7 @@ void ISRwatchdog()
   }
 }
 
-// MQTT 连接
+// MQTT Connection
 void reconnect()
 {
   DEBUG_PRINTLN("Attempting MQTT connection...");
@@ -307,6 +307,7 @@ void setup()
   Serial.begin(115200);
 #endif
 
+  DEBUG_PRINTLN("Setting all pins");
   pinMode(PUMP_PIN, OUTPUT);
   pinMode(VALVE1_PIN, OUTPUT);
   pinMode(VALVE2_PIN, OUTPUT);
@@ -319,45 +320,51 @@ void setup()
   // Button
   // Single Click event attachment with lambda
   valve1_btn.attachClick([]()
-                         {
-                           DEBUG_PRINTLN("Valve1 Pressed!");
-                           valve1.toggle();
-                         });
+    {
+      DEBUG_PRINTLN("Valve1 Pressed!");
+      valve1.toggle();
+      upload(0);
+    });
   valve2_btn.attachClick([]()
-                         {
-                           DEBUG_PRINTLN("Valve2 Pressed!");
-                           valve2.toggle();
-                         });
+    {
+      DEBUG_PRINTLN("Valve2 Pressed!");
+      valve2.toggle();
+      upload(0);
+    });
   valve3_btn.attachClick([]()
-                         {
-                           DEBUG_PRINTLN("Valve3 Pressed!");
-                           valve3.toggle();
-                         });
+    {
+      DEBUG_PRINTLN("Valve3 Pressed!");
+      valve3.toggle();
+      upload(0);
+    });
   pump_btn.attachClick([]()
-                       {
-                         DEBUG_PRINTLN("Pump Pressed!");
-                         pump.toggle();
-                       });
+    {
+      DEBUG_PRINTLN("Pump Pressed!");
+      pump.toggle();
+      upload(0);
+    });
 
-  SPIFFS.begin(); //FS
+  SPIFFS.begin(); // FS
   if (!load_config())
     save_config(); // Read config, or save default settings.
 
   setup_wifi(); // Setup Wi-Fi
 
-  timeClient.begin(); // Start NTC service
+  timeClient.begin(); // Start NTP service
 
   // OTA
+  DEBUG_PRINTLN("Starting OTA");
   ArduinoOTA.setPort(8266);
   ArduinoOTA.setHostname(device_name);
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
-                        {
-                          DEBUG_PRINTLN((float)progress / total * 100);
-                          watchdogCount = 1; // Feed dog while doing update
-                        });
+    {
+      DEBUG_PRINTLN((float)progress / total * 100);
+      watchdogCount = 1; // Feed dog while doing update
+    });
   ArduinoOTA.begin();
 
   // MQTT
+  DEBUG_PRINTLN("Starting MQTT");
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callback);
 

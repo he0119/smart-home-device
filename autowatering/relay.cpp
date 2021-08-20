@@ -1,7 +1,5 @@
 #include "relay.h"
 
-void upload(bool reset);
-
 Relay::Relay(int pin)
 {
   m_pin = pin;
@@ -34,7 +32,6 @@ void Relay::open()
   m_open_at = millis(); // Reset timer
   m_status = true;
   digitalWrite(m_pin, m_status);
-  upload(0);
 };
 
 void Relay::close()
@@ -42,7 +39,6 @@ void Relay::close()
   m_auto_close = false;
   m_status = false;
   digitalWrite(m_pin, m_status);
-  upload(0);
 };
 
 void Relay::toggle()
