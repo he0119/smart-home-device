@@ -85,6 +85,12 @@ Relay valve2(VALVE2_PIN);
 Relay valve3(VALVE3_PIN);
 Relay pump(PUMP_PIN);
 
+/**
+ * @brief 上传当前状态
+ *
+ * @param reset 是否重置定时上传计时器
+ *
+ */
 void upload(bool reset)
 {
   const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(11);
