@@ -96,6 +96,18 @@ void upload(bool reset)
   const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(11);
   DynamicJsonDocument doc(capacity);
 
+  // 处理出错的数据
+  // 同时为零的时候不上传，这个大概是没插好的时候
+  if (temperature == 0 && relative_humidity == 0)
+  {
+    return;
+  }
+  // 相对湿度如果大于 100% 则不上传
+  if (relative_humidity > 100)
+  {
+    return;
+  }
+
   doc["timestamp"] = data_readtime;
   JsonObject data = doc.createNestedObject("data");
   data["temperature"] = temperature;
