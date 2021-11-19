@@ -20,6 +20,7 @@
             "includePath": [
                 "C:\\Users\\hmy01\\OneDrive\\文档\\Arduino\\libraries\\**",
                 "C:\\Users\\hmy01\\OneDrive\\文档\\Arduino\\libraries\\OneButton\\src",
+                "C:\\Users\\hmy01\\OneDrive\\文档\\Arduino\\libraries\\DHTNEW\\**",
                 "C:\\Users\\hmy01\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.0.2\\tools\\sdk\\include",
                 "C:\\Users\\hmy01\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.0.2\\tools\\sdk\\lwip2\\include",
                 "C:\\Users\\hmy01\\AppData\\Local\\Arduino15\\packages\\esp8266\\hardware\\esp8266\\3.0.2\\cores\\esp8266",

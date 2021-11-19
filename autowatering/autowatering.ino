@@ -60,14 +60,8 @@ String device_status_topic = "device/" + String(device_name) + "/status";
 String device_set_topic = "device/" + String(device_name) + "/set";
 
 // DHT
-#include <DHTStable.h>
-#ifdef DHT_VERSION_11
-#define readdht read11
-#endif
-#ifdef DHT_VERSION_22
-#define readdht read22
-#endif
-DHTStable DHT;
+#include <dhtnew.h>
+DHTNEW mySensor(DHT_PIN);
 
 // Status
 unsigned long lastMillis = 0; // Upload Data Timer
@@ -211,17 +205,15 @@ void setup_wifi()
 // Read sensor data
 void read_data()
 {
-  int chk = DHT.readdht(DHT_PIN);
+  int chk = mySensor.read();
   switch (chk)
   {
   case DHTLIB_OK:
-    relative_humidity = DHT.getHumidity();
-    temperature = DHT.getTemperature();
+    relative_humidity = mySensor.getHumidity();
+    temperature = mySensor.getTemperature();
     break;
   default:
-    relative_humidity = NULL;
-    temperature = NULL;
-    break;
+    return;
   }
   wifi_signal = WiFi.RSSI();
   data_readtime = timeClient.getEpochTime();
