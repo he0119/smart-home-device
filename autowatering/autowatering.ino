@@ -14,11 +14,9 @@ OneButton pump_btn(10, false, false);  //SD3
 
 // Config
 #ifdef CI_TESTING
-
 #include "config.example.h"
 #define DEBUG_PRINTLN(...)
 #define DEBUG_PRINT(...)
-
 #else
 
 #ifdef ENABLE_DEBUG
@@ -90,15 +88,20 @@ void upload(bool reset)
   const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(11);
   DynamicJsonDocument doc(capacity);
 
+  if (reset)
+    lastMillis = millis(); // Reset the upload data timer
+
   // 处理出错的数据
   // 同时为零的时候不上传，这个大概是没插好的时候
   if (temperature == 0 && relative_humidity == 0)
   {
+    DEBUG_PRINTLN("Temperature and humidity is zero, skip upload");
     return;
   }
   // 相对湿度如果大于 100% 则不上传
   if (relative_humidity > 100)
   {
+    DEBUG_PRINTLN("Humidity > 100%, skip upload");
     return;
   }
 
@@ -122,9 +125,6 @@ void upload(bool reset)
   DEBUG_PRINTLN("Upload status");
   DEBUG_PRINTLN(msg);
   client.publish(device_status_topic.c_str(), msg);
-
-  if (reset)
-    lastMillis = millis(); // Reset the upload data timer
 }
 
 void callback(char* topic, byte* payload, unsigned int length)
