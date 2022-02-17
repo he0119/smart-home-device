@@ -1,7 +1,0 @@
-# https://github.com/actions/labeler
-esp32:
-  - autowatering-esp32/**/*
-esp8266:
-  - autowatering-esp8266/**/*
-ci:
-  - .github/**/*

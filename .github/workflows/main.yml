@@ -4,10 +4,7 @@ on:
   push:
     branches:
       - 'master'
-      - 'dev'
   pull_request:
-  release:
-    types: [published]
 
 env:
   arduino-board: 'esp8266:esp8266@3.0.2'
