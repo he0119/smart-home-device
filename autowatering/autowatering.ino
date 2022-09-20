@@ -1,16 +1,32 @@
 // Pins
+#ifdef ESP8266
 #define DHT_PIN D4
 #define VALVE1_PIN D5
 #define VALVE2_PIN D6
 #define VALVE3_PIN D7
 #define PUMP_PIN D8
+#define VALVE1_BTN_PIN D1
+#define VALVE2_BTN_PIN D2
+#define VALVE3_BTN_PIN 9
+#define PUMP_BTN_PIN 10
+#else
+#define DHT_PIN A0
+#define VALVE1_PIN A3
+#define VALVE2_PIN A4
+#define VALVE3_PIN A5
+#define PUMP_PIN A6
+#define VALVE1_BTN_PIN A10
+#define VALVE2_BTN_PIN A11
+#define VALVE3_BTN_PIN A12
+#define PUMP_BTN_PIN A13
+#endif
 
 // Button
 #include "OneButton.h"
-OneButton valve1_btn(D1, false, false);
-OneButton valve2_btn(D2, false, false);
-OneButton valve3_btn(9, false, false); //SD2
-OneButton pump_btn(10, false, false);  //SD3
+OneButton valve1_btn(VALVE1_BTN_PIN, false, false);
+OneButton valve2_btn(VALVE2_BTN_PIN, false, false);
+OneButton valve3_btn(VALVE3_BTN_PIN, false, false); //SD2
+OneButton pump_btn(PUMP_BTN_PIN, false, false);  //SD3
 
 // Config
 #ifdef CI_TESTING
@@ -32,7 +48,12 @@ OneButton pump_btn(10, false, false);  //SD3
 #endif
 
 // WIFI&OTA&FS
+#ifdef ESP8266
 #include <ESP8266WiFi.h>
+#else
+#include <WiFi.h>
+#include "SPIFFS.h"
+#endif
 #include <ArduinoOTA.h>
 #include <FS.h>
 
@@ -282,7 +303,11 @@ void ISRwatchdog()
   watchdogCount++;
   if (watchdogCount > 60) // Not Responding for 60 seconds, it will reset the board.
   {
+#ifdef ESP8266
     ESP.reset();
+#else
+    ESP.restart();
+#endif
   }
 }
 
