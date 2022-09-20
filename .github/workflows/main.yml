@@ -11,6 +11,7 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - additional_urls: https://arduino.esp8266.com/stable/package_esp8266com_index.json
