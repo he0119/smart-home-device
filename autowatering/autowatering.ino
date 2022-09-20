@@ -50,12 +50,9 @@ NTPClient timeClient(ntpUDP, "ntp.aliyun.com");
 // Json
 #include <ArduinoJson.h>
 
-// MQTT
-#include <PubSubClient.h>
-WiFiClient espClient;
-PubSubClient client(espClient);
-String device_status_topic = "device/" + String(device_name) + "/status";
-String device_set_topic = "device/" + String(device_name) + "/set";
+// WebSockets
+#include <WebSocketsClient.h>
+WebSocketsClient webSocket;
 
 // DHT
 #include <dhtnew.h>
@@ -124,68 +121,67 @@ void upload(bool reset)
 
   DEBUG_PRINTLN("Upload status");
   DEBUG_PRINTLN(msg);
-  client.publish(device_status_topic.c_str(), msg);
+  webSocket.sendTXT(msg);
 }
 
-void callback(char* topic, byte* payload, unsigned int length)
+void callback(WStype_t type, uint8_t* payload, size_t length)
 {
-  DEBUG_PRINTLN("Message arrived [");
-  DEBUG_PRINTLN(topic);
-  DEBUG_PRINTLN("] ");
-  const size_t capacity = JSON_OBJECT_SIZE(8) + 150;
-  DynamicJsonDocument doc(capacity);
-  auto error = deserializeJson(doc, payload);
-  // Test if parsing succeeds.
-  if (error)
-  {
-    return;
-  }
+  if (type == WStype_TEXT) {
+    const size_t capacity = JSON_OBJECT_SIZE(8) + 150;
+    DynamicJsonDocument doc(capacity);
+    auto error = deserializeJson(doc, payload);
+    // Test if parsing succeeds.
+    if (error)
+    {
+      return;
+    }
 
-  if (doc.containsKey("valve1"))
-  {
-    doc["valve1"] ? valve1.open() : valve1.close();
-  }
-  if (doc.containsKey("valve2"))
-  {
-    doc["valve2"] ? valve2.open() : valve2.close();
-  }
-  if (doc.containsKey("valve3"))
-  {
-    doc["valve3"] ? valve3.open() : valve3.close();
-  }
-  if (doc.containsKey("pump"))
-  {
-    doc["pump"] ? pump.open() : pump.close();
-  }
+    if (doc.containsKey("valve1"))
+    {
+      doc["valve1"] ? valve1.open() : valve1.close();
+    }
+    if (doc.containsKey("valve2"))
+    {
+      doc["valve2"] ? valve2.open() : valve2.close();
+    }
+    if (doc.containsKey("valve3"))
+    {
+      doc["valve3"] ? valve3.open() : valve3.close();
+    }
+    if (doc.containsKey("pump"))
+    {
+      doc["pump"] ? pump.open() : pump.close();
+    }
 
-  if (doc.containsKey("valve1_delay"))
-  {
-    valve1.set_delay(doc["valve1_delay"]);
-    need_save_config = true;
-  }
-  if (doc.containsKey("valve2_delay"))
-  {
-    valve2.set_delay(doc["valve2_delay"]);
-    need_save_config = true;
-  }
-  if (doc.containsKey("valve3_delay"))
-  {
-    valve3.set_delay(doc["valve3_delay"]);
-    need_save_config = true;
-  }
-  if (doc.containsKey("pump_delay"))
-  {
-    pump.set_delay(doc["pump_delay"]);
-    need_save_config = true;
-  }
+    if (doc.containsKey("valve1_delay"))
+    {
+      valve1.set_delay(doc["valve1_delay"]);
+      need_save_config = true;
+    }
+    if (doc.containsKey("valve2_delay"))
+    {
+      valve2.set_delay(doc["valve2_delay"]);
+      need_save_config = true;
+    }
+    if (doc.containsKey("valve3_delay"))
+    {
+      valve3.set_delay(doc["valve3_delay"]);
+      need_save_config = true;
+    }
+    if (doc.containsKey("pump_delay"))
+    {
+      pump.set_delay(doc["pump_delay"]);
+      need_save_config = true;
+    }
 
-  data_readtime = timeClient.getEpochTime();
+    data_readtime = timeClient.getEpochTime();
 
-  upload(0);
-  if (need_save_config)
-  {
-    save_config();
-    need_save_config = false;
+    upload(0);
+    if (need_save_config)
+    {
+      save_config();
+      need_save_config = false;
+    }
   }
 }
 
@@ -194,7 +190,7 @@ void setup_wifi()
   delay(10);
   WiFi.mode(WIFI_STA);
   // We start by connecting to a WiFi network
-  WiFi.begin(ssid, password);
+  WiFi.begin(ssid, wifi_password);
   while (WiFi.waitForConnectResult() != WL_CONNECTED)
   {
     delay(5000);
@@ -290,27 +286,6 @@ void ISRwatchdog()
   }
 }
 
-// MQTT Connection
-void reconnect()
-{
-  DEBUG_PRINTLN("Attempting MQTT connection...");
-  // 客户端 ID 和设备名称一致
-  // Attempt to connect
-  if (client.connect(device_name, device_name, mqtt_password))
-  {
-    DEBUG_PRINTLN("connected");
-    client.subscribe(device_set_topic.c_str(), 1);
-  }
-  else
-  {
-    DEBUG_PRINT("failed, rc=");
-    DEBUG_PRINT(client.state());
-    DEBUG_PRINTLN("try again in 1 seconds");
-    // Wait 1 seconds before retrying
-    delay(1000);
-  }
-}
-
 void setup()
 {
 #ifdef ENABLE_DEBUG
@@ -365,7 +340,7 @@ void setup()
   // OTA
   DEBUG_PRINTLN("Starting OTA");
   ArduinoOTA.setPort(8266);
-  ArduinoOTA.setHostname(device_name);
+  ArduinoOTA.setHostname(username);
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
     {
       DEBUG_PRINTLN((float)progress / total * 100);
@@ -373,10 +348,11 @@ void setup()
     });
   ArduinoOTA.begin();
 
-  // MQTT
-  DEBUG_PRINTLN("Starting MQTT");
-  client.setServer(mqtt_server, mqtt_port);
-  client.setCallback(callback);
+  // WebSockets
+  DEBUG_PRINTLN("Starting WebSockets");
+  webSocket.setAuthorization("user", "password"); // HTTP Basic Authorization
+  webSocket.onEvent(callback);
+  webSocket.begin(server_host, server_port, server_url);
 
   // Watchdog
   secondTick.attach(1, ISRwatchdog);
@@ -401,12 +377,8 @@ void loop()
   valve3.tick();
   pump.tick();
 
-  // MQTT
-  if (!client.connected())
-  {
-    reconnect();
-  }
-  client.loop();
+  // webSockets
+  webSocket.loop();
 
   // Upload data every 10 seconds
   if (millis() - lastMillis > 10000)

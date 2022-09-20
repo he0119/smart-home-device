@@ -7,7 +7,7 @@
     "buildPreferences": [
         [
             "build.extra_flags",
-            "-DENABLE_DEBUG"
+            "-DENABLE_DEBUG -DESP8266"
         ]
     ]
 }

@@ -27,10 +27,10 @@ jobs:
           arduino-cli core install ${{ env.arduino-board }}
       - name: Install dependencies
         run: |
-          arduino-cli lib install "NTPClient@3.2.0"
-          arduino-cli lib install "ArduinoJson@6.18.5"
-          arduino-cli lib install "PubSubClient@2.8.0"
-          arduino-cli lib install "DHTNEW@0.4.10"
-          arduino-cli lib install "OneButton@2.0.2"
+          arduino-cli lib install "NTPClient@3.2.1"
+          arduino-cli lib install "ArduinoJson@6.19.4"
+          arduino-cli lib install "Websockets@2.3.6"
+          arduino-cli lib install "DHTNEW@0.4.13"
+          arduino-cli lib install "OneButton@2.0.4"
       - name: Compile sketch
-        run: arduino-cli compile --build-property "build.extra_flags=-DCI_TESTING" --fqbn ${{ env.arduino-platform }} ./autowatering/autowatering.ino
+        run: arduino-cli compile --build-property "build.extra_flags=-DCI_TESTING -DESP8266" --fqbn ${{ env.arduino-platform }} ./autowatering/autowatering.ino
