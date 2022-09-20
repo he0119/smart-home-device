@@ -52,10 +52,10 @@ OneButton pump_btn(PUMP_BTN_PIN, false, false);  //SD3
 #include <ESP8266WiFi.h>
 #else
 #include <WiFi.h>
-#include "SPIFFS.h"
 #endif
 #include <ArduinoOTA.h>
 #include <FS.h>
+#include <LittleFS.h>
 
 // Ticker&Watchdog
 #include <Ticker.h>
@@ -238,7 +238,7 @@ void read_data()
 
 bool load_config()
 {
-  File configFile = SPIFFS.open("/config.json", "r");
+  File configFile = LittleFS.open("/config.json", "r");
   if (!configFile)
   {
     DEBUG_PRINTLN("Read config failed");
@@ -271,6 +271,7 @@ bool load_config()
   pump.set_delay(doc["pump_delay"]);
   // ----------------------
 
+  configFile.close();
   return true;
 }
 
@@ -286,7 +287,7 @@ bool save_config()
   doc["pump_delay"] = pump.delay();
   // -----------------------
 
-  File configFile = SPIFFS.open("/config.json", "w");
+  File configFile = LittleFS.open("/config.json", "w");
   if (!configFile)
   {
     DEBUG_PRINTLN("Write config failed");
@@ -294,6 +295,8 @@ bool save_config()
   }
 
   serializeJson(doc, configFile);
+
+  configFile.close();
   return true;
 }
 
@@ -354,7 +357,11 @@ void setup()
       upload(0);
     });
 
-  SPIFFS.begin(); // FS
+  // FS
+  if (!LittleFS.begin()) {
+    Serial.println("LittleFS mount failed");
+    return;
+  }
   if (!load_config())
     save_config(); // Read config, or save default settings.
 
