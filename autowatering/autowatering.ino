@@ -350,7 +350,7 @@ void setup()
 
   // WebSockets
   DEBUG_PRINTLN("Starting WebSockets");
-  webSocket.setAuthorization("user", "password"); // HTTP Basic Authorization
+  webSocket.setAuthorization(username, password); // HTTP Basic Authorization
   webSocket.onEvent(callback);
   webSocket.begin(server_host, server_port, server_url);
 
