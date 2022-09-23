@@ -382,9 +382,11 @@ void setup()
 
   // WebSockets
   DEBUG_PRINTLN("Starting WebSockets");
-  webSocket.setAuthorization(username, password); // HTTP Basic Authorization
+  webSocket.beginSSL(server_host, server_port, server_url);
   webSocket.onEvent(callback);
-  webSocket.begin(server_host, server_port, server_url);
+  webSocket.setAuthorization(username, password); // HTTP Basic Authorization
+  // try ever 1000 again if connection has failed
+  webSocket.setReconnectInterval(1000);
 
   // Watchdog
   secondTick.attach(1, ISRwatchdog);
