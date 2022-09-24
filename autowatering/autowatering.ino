@@ -10,15 +10,16 @@
 #define VALVE3_BTN_PIN 9
 #define PUMP_BTN_PIN 10
 #else
-#define DHT_PIN A0
-#define VALVE1_PIN A3
-#define VALVE2_PIN A4
-#define VALVE3_PIN A5
-#define PUMP_PIN A6
-#define VALVE1_BTN_PIN A10
-#define VALVE2_BTN_PIN A11
-#define VALVE3_BTN_PIN A12
-#define PUMP_BTN_PIN A13
+// 36,39,34,35 为仅输入
+#define DHT_PIN 32
+#define VALVE1_PIN 33
+#define VALVE2_PIN 25
+#define VALVE3_PIN 26
+#define PUMP_PIN 27
+#define VALVE1_BTN_PIN 4
+#define VALVE2_BTN_PIN 2
+#define VALVE3_BTN_PIN 15
+#define PUMP_BTN_PIN 0
 #endif
 
 // Button
@@ -148,6 +149,8 @@ void upload(bool reset)
 void callback(WStype_t type, uint8_t* payload, size_t length)
 {
   if (type == WStype_TEXT) {
+    DEBUG_PRINTLN("Received text");
+    DEBUG_PRINTLN((char*)payload);
     const size_t capacity = JSON_OBJECT_SIZE(8) + 150;
     DynamicJsonDocument doc(capacity);
     auto error = deserializeJson(doc, payload);
@@ -358,8 +361,8 @@ void setup()
     });
 
   // FS
-  if (!LittleFS.begin()) {
-    Serial.println("LittleFS mount failed");
+  if (!LittleFS.begin(true)) {
+    DEBUG_PRINTLN("LittleFS mount failed");
     return;
   }
   if (!load_config())
