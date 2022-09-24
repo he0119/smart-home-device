@@ -361,7 +361,11 @@ void setup()
     });
 
   // FS
+#ifdef ESP8266
+  if (!LittleFS.begin()) {
+#else
   if (!LittleFS.begin(true)) {
+#endif
     DEBUG_PRINTLN("LittleFS mount failed");
     return;
   }
@@ -393,7 +397,7 @@ void setup()
 
   // Watchdog
   secondTick.attach(1, ISRwatchdog);
-}
+  }
 
 void loop()
 {
