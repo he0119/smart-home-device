@@ -1,16 +1,33 @@
 // Pins
+#ifdef ESP8266
 #define DHT_PIN D4
 #define VALVE1_PIN D5
 #define VALVE2_PIN D6
 #define VALVE3_PIN D7
 #define PUMP_PIN D8
+#define VALVE1_BTN_PIN D1
+#define VALVE2_BTN_PIN D2
+#define VALVE3_BTN_PIN 9
+#define PUMP_BTN_PIN 10
+#else
+// 36,39,34,35 为仅输入
+#define DHT_PIN 32
+#define VALVE1_PIN 33
+#define VALVE2_PIN 25
+#define VALVE3_PIN 26
+#define PUMP_PIN 27
+#define VALVE1_BTN_PIN 4
+#define VALVE2_BTN_PIN 2
+#define VALVE3_BTN_PIN 15
+#define PUMP_BTN_PIN 0
+#endif
 
 // Button
 #include "OneButton.h"
-OneButton valve1_btn(D1, false, false);
-OneButton valve2_btn(D2, false, false);
-OneButton valve3_btn(9, false, false); //SD2
-OneButton pump_btn(10, false, false);  //SD3
+OneButton valve1_btn(VALVE1_BTN_PIN, false, false);
+OneButton valve2_btn(VALVE2_BTN_PIN, false, false);
+OneButton valve3_btn(VALVE3_BTN_PIN, false, false); //SD2
+OneButton pump_btn(PUMP_BTN_PIN, false, false);  //SD3
 
 // Config
 #ifdef CI_TESTING
@@ -32,9 +49,14 @@ OneButton pump_btn(10, false, false);  //SD3
 #endif
 
 // WIFI&OTA&FS
+#ifdef ESP8266
 #include <ESP8266WiFi.h>
+#else
+#include <WiFi.h>
+#endif
 #include <ArduinoOTA.h>
 #include <FS.h>
+#include <LittleFS.h>
 
 // Ticker&Watchdog
 #include <Ticker.h>
@@ -50,12 +72,9 @@ NTPClient timeClient(ntpUDP, "ntp.aliyun.com");
 // Json
 #include <ArduinoJson.h>
 
-// MQTT
-#include <PubSubClient.h>
-WiFiClient espClient;
-PubSubClient client(espClient);
-String device_status_topic = "device/" + String(device_name) + "/status";
-String device_set_topic = "device/" + String(device_name) + "/set";
+// WebSockets
+#include <WebSocketsClient.h>
+WebSocketsClient webSocket;
 
 // DHT
 #include <dhtnew.h>
@@ -124,68 +143,69 @@ void upload(bool reset)
 
   DEBUG_PRINTLN("Upload status");
   DEBUG_PRINTLN(msg);
-  client.publish(device_status_topic.c_str(), msg);
+  webSocket.sendTXT(msg);
 }
 
-void callback(char* topic, byte* payload, unsigned int length)
+void callback(WStype_t type, uint8_t* payload, size_t length)
 {
-  DEBUG_PRINTLN("Message arrived [");
-  DEBUG_PRINTLN(topic);
-  DEBUG_PRINTLN("] ");
-  const size_t capacity = JSON_OBJECT_SIZE(8) + 150;
-  DynamicJsonDocument doc(capacity);
-  auto error = deserializeJson(doc, payload);
-  // Test if parsing succeeds.
-  if (error)
-  {
-    return;
-  }
+  if (type == WStype_TEXT) {
+    DEBUG_PRINTLN("Received text");
+    DEBUG_PRINTLN((char*)payload);
+    const size_t capacity = JSON_OBJECT_SIZE(8) + 150;
+    DynamicJsonDocument doc(capacity);
+    auto error = deserializeJson(doc, payload);
+    // Test if parsing succeeds.
+    if (error)
+    {
+      return;
+    }
 
-  if (doc.containsKey("valve1"))
-  {
-    doc["valve1"] ? valve1.open() : valve1.close();
-  }
-  if (doc.containsKey("valve2"))
-  {
-    doc["valve2"] ? valve2.open() : valve2.close();
-  }
-  if (doc.containsKey("valve3"))
-  {
-    doc["valve3"] ? valve3.open() : valve3.close();
-  }
-  if (doc.containsKey("pump"))
-  {
-    doc["pump"] ? pump.open() : pump.close();
-  }
+    if (doc.containsKey("valve1"))
+    {
+      doc["valve1"] ? valve1.open() : valve1.close();
+    }
+    if (doc.containsKey("valve2"))
+    {
+      doc["valve2"] ? valve2.open() : valve2.close();
+    }
+    if (doc.containsKey("valve3"))
+    {
+      doc["valve3"] ? valve3.open() : valve3.close();
+    }
+    if (doc.containsKey("pump"))
+    {
+      doc["pump"] ? pump.open() : pump.close();
+    }
 
-  if (doc.containsKey("valve1_delay"))
-  {
-    valve1.set_delay(doc["valve1_delay"]);
-    need_save_config = true;
-  }
-  if (doc.containsKey("valve2_delay"))
-  {
-    valve2.set_delay(doc["valve2_delay"]);
-    need_save_config = true;
-  }
-  if (doc.containsKey("valve3_delay"))
-  {
-    valve3.set_delay(doc["valve3_delay"]);
-    need_save_config = true;
-  }
-  if (doc.containsKey("pump_delay"))
-  {
-    pump.set_delay(doc["pump_delay"]);
-    need_save_config = true;
-  }
+    if (doc.containsKey("valve1_delay"))
+    {
+      valve1.set_delay(doc["valve1_delay"]);
+      need_save_config = true;
+    }
+    if (doc.containsKey("valve2_delay"))
+    {
+      valve2.set_delay(doc["valve2_delay"]);
+      need_save_config = true;
+    }
+    if (doc.containsKey("valve3_delay"))
+    {
+      valve3.set_delay(doc["valve3_delay"]);
+      need_save_config = true;
+    }
+    if (doc.containsKey("pump_delay"))
+    {
+      pump.set_delay(doc["pump_delay"]);
+      need_save_config = true;
+    }
 
-  data_readtime = timeClient.getEpochTime();
+    data_readtime = timeClient.getEpochTime();
 
-  upload(0);
-  if (need_save_config)
-  {
-    save_config();
-    need_save_config = false;
+    upload(0);
+    if (need_save_config)
+    {
+      save_config();
+      need_save_config = false;
+    }
   }
 }
 
@@ -194,7 +214,7 @@ void setup_wifi()
   delay(10);
   WiFi.mode(WIFI_STA);
   // We start by connecting to a WiFi network
-  WiFi.begin(ssid, password);
+  WiFi.begin(ssid, wifi_password);
   while (WiFi.waitForConnectResult() != WL_CONNECTED)
   {
     delay(5000);
@@ -221,7 +241,7 @@ void read_data()
 
 bool load_config()
 {
-  File configFile = SPIFFS.open("/config.json", "r");
+  File configFile = LittleFS.open("/config.json", "r");
   if (!configFile)
   {
     DEBUG_PRINTLN("Read config failed");
@@ -254,6 +274,7 @@ bool load_config()
   pump.set_delay(doc["pump_delay"]);
   // ----------------------
 
+  configFile.close();
   return true;
 }
 
@@ -269,7 +290,7 @@ bool save_config()
   doc["pump_delay"] = pump.delay();
   // -----------------------
 
-  File configFile = SPIFFS.open("/config.json", "w");
+  File configFile = LittleFS.open("/config.json", "w");
   if (!configFile)
   {
     DEBUG_PRINTLN("Write config failed");
@@ -277,6 +298,8 @@ bool save_config()
   }
 
   serializeJson(doc, configFile);
+
+  configFile.close();
   return true;
 }
 
@@ -286,28 +309,11 @@ void ISRwatchdog()
   watchdogCount++;
   if (watchdogCount > 60) // Not Responding for 60 seconds, it will reset the board.
   {
+#ifdef ESP8266
     ESP.reset();
-  }
-}
-
-// MQTT Connection
-void reconnect()
-{
-  DEBUG_PRINTLN("Attempting MQTT connection...");
-  // 客户端 ID 和设备名称一致
-  // Attempt to connect
-  if (client.connect(device_name, device_name, mqtt_password))
-  {
-    DEBUG_PRINTLN("connected");
-    client.subscribe(device_set_topic.c_str(), 1);
-  }
-  else
-  {
-    DEBUG_PRINT("failed, rc=");
-    DEBUG_PRINT(client.state());
-    DEBUG_PRINTLN("try again in 1 seconds");
-    // Wait 1 seconds before retrying
-    delay(1000);
+#else
+    ESP.restart();
+#endif
   }
 }
 
@@ -354,7 +360,15 @@ void setup()
       upload(0);
     });
 
-  SPIFFS.begin(); // FS
+  // FS
+#ifdef ESP8266
+  if (!LittleFS.begin()) {
+#else
+  if (!LittleFS.begin(true)) {
+#endif
+    DEBUG_PRINTLN("LittleFS mount failed");
+    return;
+  }
   if (!load_config())
     save_config(); // Read config, or save default settings.
 
@@ -365,7 +379,7 @@ void setup()
   // OTA
   DEBUG_PRINTLN("Starting OTA");
   ArduinoOTA.setPort(8266);
-  ArduinoOTA.setHostname(device_name);
+  ArduinoOTA.setHostname(username);
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
     {
       DEBUG_PRINTLN((float)progress / total * 100);
@@ -373,14 +387,17 @@ void setup()
     });
   ArduinoOTA.begin();
 
-  // MQTT
-  DEBUG_PRINTLN("Starting MQTT");
-  client.setServer(mqtt_server, mqtt_port);
-  client.setCallback(callback);
+  // WebSockets
+  DEBUG_PRINTLN("Starting WebSockets");
+  webSocket.beginSSL(server_host, server_port, server_url);
+  webSocket.onEvent(callback);
+  webSocket.setAuthorization(username, password); // HTTP Basic Authorization
+  // try ever 1000 again if connection has failed
+  webSocket.setReconnectInterval(1000);
 
   // Watchdog
   secondTick.attach(1, ISRwatchdog);
-}
+  }
 
 void loop()
 {
@@ -401,12 +418,8 @@ void loop()
   valve3.tick();
   pump.tick();
 
-  // MQTT
-  if (!client.connected())
-  {
-    reconnect();
-  }
-  client.loop();
+  // webSockets
+  webSocket.loop();
 
   // Upload data every 10 seconds
   if (millis() - lastMillis > 10000)
