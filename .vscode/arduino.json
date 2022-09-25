@@ -1,13 +1,13 @@
 {
-    "port": "COM3",
-    "configuration": "xtal=80,vt=flash,exception=disabled,stacksmash=disabled,ssl=all,mmu=3232,non32xfer=fast,eesz=4M2M,led=2,ip=lm2f,dbg=Disabled,lvl=None____,wipe=none,baud=115200",
-    "board": "esp8266:esp8266:nodemcuv2",
+    "port": "COM7",
+    "configuration": "PSRAM=disabled,PartitionScheme=default,CPUFreq=240,FlashMode=qio,FlashFreq=80,FlashSize=4M,UploadSpeed=921600,LoopCore=1,EventsCore=1,DebugLevel=none,EraseFlash=none",
+    "board": "esp32:esp32:esp32",
     "sketch": "autowatering/autowatering.ino",
     "output": ".vscode/build",
     "buildPreferences": [
         [
             "build.extra_flags",
-            "-DENABLE_DEBUG -DESP8266"
+            "-DENABLE_DEBUG -DESP32"
         ]
     ]
 }

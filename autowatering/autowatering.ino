@@ -7,8 +7,8 @@
 #define PUMP_PIN D8
 #define VALVE1_BTN_PIN D1
 #define VALVE2_BTN_PIN D2
-#define VALVE3_BTN_PIN 9
-#define PUMP_BTN_PIN 10
+#define VALVE3_BTN_PIN 9 //SD2
+#define PUMP_BTN_PIN 10 //SD3
 #else
 // 36,39,34,35 为仅输入
 #define DHT_PIN 32
@@ -26,8 +26,8 @@
 #include "OneButton.h"
 OneButton valve1_btn(VALVE1_BTN_PIN, false, false);
 OneButton valve2_btn(VALVE2_BTN_PIN, false, false);
-OneButton valve3_btn(VALVE3_BTN_PIN, false, false); //SD2
-OneButton pump_btn(PUMP_BTN_PIN, false, false);  //SD3
+OneButton valve3_btn(VALVE3_BTN_PIN, false, false);
+OneButton pump_btn(PUMP_BTN_PIN, false, false);
 
 // Config
 #ifdef CI_TESTING
@@ -51,8 +51,10 @@ OneButton pump_btn(PUMP_BTN_PIN, false, false);  //SD3
 // WIFI&OTA&FS
 #ifdef ESP8266
 #include <ESP8266WiFi.h>
+#define FORMAT_LITTLEFS_IF_FAILED
 #else
 #include <WiFi.h>
+#define FORMAT_LITTLEFS_IF_FAILED true
 #endif
 #include <ArduinoOTA.h>
 #include <FS.h>
@@ -361,11 +363,7 @@ void setup()
     });
 
   // FS
-#ifdef ESP8266
-  if (!LittleFS.begin()) {
-#else
-  if (!LittleFS.begin(true)) {
-#endif
+  if (!LittleFS.begin(FORMAT_LITTLEFS_IF_FAILED)) {
     DEBUG_PRINTLN("LittleFS mount failed");
     return;
   }
@@ -397,7 +395,7 @@ void setup()
 
   // Watchdog
   secondTick.attach(1, ISRwatchdog);
-  }
+}
 
 void loop()
 {
