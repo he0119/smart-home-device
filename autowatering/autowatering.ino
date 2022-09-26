@@ -1,4 +1,5 @@
 // Pins
+// 数字指 GPIO
 #ifdef ESP8266
 #define DHT_PIN D4
 #define VALVE1_PIN D5
@@ -10,7 +11,8 @@
 #define VALVE3_BTN_PIN 9 //SD2
 #define PUMP_BTN_PIN 10 //SD3
 #else
-// 36,39,34,35 为仅输入
+// 34,35,36,39 为仅输入
+// ESP32-DevKitC-32E
 #define DHT_PIN 32
 #define VALVE1_PIN 33
 #define VALVE2_PIN 25
