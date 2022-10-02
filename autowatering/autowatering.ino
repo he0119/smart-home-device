@@ -71,7 +71,7 @@ volatile int watchdogCount = 1;
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "ntp.aliyun.com");
+NTPClient timeClient(ntpUDP, "cn.ntp.org.cn");
 
 // Json
 #include <ArduinoJson.h>
@@ -108,7 +108,7 @@ Relay pump(PUMP_PIN);
  */
 void upload(bool reset)
 {
-  const size_t capacity = JSON_OBJECT_SIZE(2) + JSON_OBJECT_SIZE(11);
+  const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(11);
   DynamicJsonDocument doc(capacity);
 
   if (reset)
@@ -128,8 +128,9 @@ void upload(bool reset)
     return;
   }
 
-  doc["timestamp"] = data_readtime;
-  JsonObject data = doc.createNestedObject("data");
+  doc["id"] = data_readtime;
+  doc["method"] = "properties_changed";
+  JsonObject data = doc.createNestedObject("params");
   data["temperature"] = temperature;
   data["humidity"] = relative_humidity;
   data["valve1"] = valve1.status();
@@ -155,7 +156,7 @@ void callback(WStype_t type, uint8_t* payload, size_t length)
   if (type == WStype_TEXT) {
     DEBUG_PRINTLN("Received text");
     DEBUG_PRINTLN((char*)payload);
-    const size_t capacity = JSON_OBJECT_SIZE(8) + 150;
+    const size_t capacity = JSON_OBJECT_SIZE(3) + JSON_OBJECT_SIZE(8) + 150;
     DynamicJsonDocument doc(capacity);
     auto error = deserializeJson(doc, payload);
     // Test if parsing succeeds.
@@ -164,51 +165,53 @@ void callback(WStype_t type, uint8_t* payload, size_t length)
       return;
     }
 
-    if (doc.containsKey("valve1"))
-    {
-      doc["valve1"] ? valve1.open() : valve1.close();
-    }
-    if (doc.containsKey("valve2"))
-    {
-      doc["valve2"] ? valve2.open() : valve2.close();
-    }
-    if (doc.containsKey("valve3"))
-    {
-      doc["valve3"] ? valve3.open() : valve3.close();
-    }
-    if (doc.containsKey("pump"))
-    {
-      doc["pump"] ? pump.open() : pump.close();
-    }
+    if (doc.containsKey("method") && doc["method"] == "set_properties" && doc.containsKey("params")) {
+      if (doc["params"].containsKey("valve1"))
+      {
+        doc["params"]["valve1"] ? valve1.open() : valve1.close();
+      }
+      if (doc["params"].containsKey("valve2"))
+      {
+        doc["params"]["valve2"] ? valve2.open() : valve2.close();
+      }
+      if (doc["params"].containsKey("valve3"))
+      {
+        doc["params"]["valve3"] ? valve3.open() : valve3.close();
+      }
+      if (doc["params"].containsKey("pump"))
+      {
+        doc["params"]["pump"] ? pump.open() : pump.close();
+      }
 
-    if (doc.containsKey("valve1_delay"))
-    {
-      valve1.set_delay(doc["valve1_delay"]);
-      need_save_config = true;
-    }
-    if (doc.containsKey("valve2_delay"))
-    {
-      valve2.set_delay(doc["valve2_delay"]);
-      need_save_config = true;
-    }
-    if (doc.containsKey("valve3_delay"))
-    {
-      valve3.set_delay(doc["valve3_delay"]);
-      need_save_config = true;
-    }
-    if (doc.containsKey("pump_delay"))
-    {
-      pump.set_delay(doc["pump_delay"]);
-      need_save_config = true;
-    }
+      if (doc["params"].containsKey("valve1_delay"))
+      {
+        valve1.set_delay(doc["params"]["valve1_delay"]);
+        need_save_config = true;
+      }
+      if (doc["params"].containsKey("valve2_delay"))
+      {
+        valve2.set_delay(doc["params"]["valve2_delay"]);
+        need_save_config = true;
+      }
+      if (doc["params"].containsKey("valve3_delay"))
+      {
+        valve3.set_delay(doc["params"]["valve3_delay"]);
+        need_save_config = true;
+      }
+      if (doc["params"].containsKey("pump_delay"))
+      {
+        pump.set_delay(doc["params"]["pump_delay"]);
+        need_save_config = true;
+      }
 
-    data_readtime = timeClient.getEpochTime();
+      data_readtime = timeClient.getEpochTime();
 
-    upload(0);
-    if (need_save_config)
-    {
-      save_config();
-      need_save_config = false;
+      upload(0);
+      if (need_save_config)
+      {
+        save_config();
+        need_save_config = false;
+      }
     }
   }
 }
