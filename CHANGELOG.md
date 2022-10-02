@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ## [Unreleased]
 
+## [0.3.0] - 2022-10-02
+
 ### Added
 
 - 支持通过单击按钮来开启或关闭开关
@@ -29,7 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 - 可正常工作，通过 MQTT 上报数据，支持 ESP8266 和 ESP32 两个版本。
 
-[Unreleased]: https://github.com/he0119/smart-home-device/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/he0119/smart-home-device/compare/v0.3.0...HEAD
 
+[0.3.0]: https://github.com/he0119/smart-home-device/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/he0119/smart-home-device/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/he0119/smart-home-device/releases/tag/v0.1.0
