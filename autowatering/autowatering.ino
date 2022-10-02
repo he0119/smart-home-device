@@ -66,6 +66,7 @@ OneButton pump_btn(PUMP_BTN_PIN, false, false);
 #include <Ticker.h>
 Ticker secondTick;
 volatile int watchdogCount = 1;
+volatile int sendFailCount = 0;
 
 // NTP
 #include <NTPClient.h>
@@ -148,7 +149,13 @@ void upload(bool reset)
 
   DEBUG_PRINTLN("Upload status");
   DEBUG_PRINTLN(msg);
-  webSocket.sendTXT(msg);
+  if (!webSocket.sendTXT(msg)) {
+    sendFailCount++;
+    DEBUG_PRINTLN("Upload failed " + String(sendFailCount) + " times");
+  }
+  else {
+    sendFailCount = 0;
+  }
 }
 
 void callback(WStype_t type, uint8_t* payload, size_t length)
@@ -314,7 +321,10 @@ bool save_config()
 void ISRwatchdog()
 {
   watchdogCount++;
-  if (watchdogCount > 60) // Not Responding for 60 seconds, it will reset the board.
+  // Not Responding for 60 seconds
+  // or if the board failed to send data to server for 6 times
+  // it will reset the board.
+  if (watchdogCount > 60 || sendFailCount >= 6)
   {
 #ifdef ESP8266
     ESP.reset();
