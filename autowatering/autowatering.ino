@@ -71,7 +71,7 @@ volatile int watchdogCount = 1;
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "ntp.aliyun.com");
+NTPClient timeClient(ntpUDP, "cn.ntp.org.cn");
 
 // Json
 #include <ArduinoJson.h>
