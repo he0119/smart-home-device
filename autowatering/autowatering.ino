@@ -382,7 +382,7 @@ void setup()
   // OTA
   DEBUG_PRINTLN("Starting OTA");
   ArduinoOTA.setPort(8266);
-  ArduinoOTA.setHostname(username);
+  ArduinoOTA.setHostname(device_name);
   ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
     {
       DEBUG_PRINTLN((float)progress / total * 100);
@@ -394,9 +394,7 @@ void setup()
   DEBUG_PRINTLN("Starting WebSockets");
   webSocket.beginSSL(server_host, server_port, server_url);
   webSocket.onEvent(callback);
-  webSocket.setAuthorization(username, password); // HTTP Basic Authorization
-  // try ever 1000 again if connection has failed
-  webSocket.setReconnectInterval(1000);
+  webSocket.setAuthorization(devcie_id, token); // HTTP Basic Authorization
 
   // Watchdog
   secondTick.attach(1, ISRwatchdog);
