@@ -1,14 +1,14 @@
 {
-    "port": "COM4",
-    "configuration": "PSRAM=disabled,PartitionScheme=default,CPUFreq=240,FlashMode=qio,FlashFreq=80,FlashSize=4M,UploadSpeed=921600,LoopCore=1,EventsCore=1,DebugLevel=none,EraseFlash=none",
-    "board": "esp32:esp32:esp32",
-    "sketch": "autowatering\\autowatering.ino",
-    "output": ".vscode/build",
-    "buildPreferences": [
-        [
-            "build.defines",
-            "-DENABLE_DEBUG"
-        ]
-    ],
-    "programmer": "esptool"
+  "port": "COM5",
+  "configuration": "PSRAM=disabled,PartitionScheme=default,CPUFreq=240,FlashMode=qio,FlashFreq=80,FlashSize=4M,UploadSpeed=921600,LoopCore=1,EventsCore=1,DebugLevel=none,EraseFlash=none",
+  "board": "esp32:esp32:esp32",
+  "sketch": "autowatering\\autowatering.ino",
+  "output": ".vscode/build",
+  "buildPreferences": [
+    [
+      "build.defines",
+      "-DENABLE_DEBUG -DDEBUG_ESP_PORT=Serial"
+    ]
+  ],
+  "programmer": "esptool"
 }

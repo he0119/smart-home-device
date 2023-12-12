@@ -11,6 +11,7 @@ profiles:
       - WebSockets (2.4.0)
       - DHTNEW (0.4.18)
       - OneButton (2.1.0)
+      - SerialMIIO (0.0.2)
   esp8266:
     notes: for esp8266
     fqbn: esp8266:esp8266:nodemcuv2
