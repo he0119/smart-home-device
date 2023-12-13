@@ -104,6 +104,19 @@ Relay pump(PUMP_PIN);
 // MIIO
 #include "SerialMIIO.h";
 SerialMIIO miio(Serial2);
+TaskHandle_t MIIOTask;
+
+void MIIOLoop(void *parameter) {
+  // MIIO
+  miio.onPropertyGet(2, 1, p_2_1_valve1_doget);
+  miio.onPropertySet(2, 1, p_2_1_valve1_doset);
+
+  Serial2.begin(115200);
+  miio.begin("perdev.switch.other1", "18140", "0001");
+  for (;;) {
+    miio.loop();
+  }
+}
 
 /**
  * @brief 上传当前状态
@@ -379,14 +392,11 @@ void setup() {
   webSocket.onEvent(callback);
   webSocket.setAuthorization(devcie_id, token); // HTTP Basic Authorization
 
-  // MIIO
-  Serial2.begin(115200);
-  miio.begin("perdev.switch.other1", "18140", "0001");
-  miio.onPropertyGet(2, 1, p_2_1_valve1_doget);
-  miio.onPropertySet(2, 1, p_2_1_valve1_doset);
-
   // Watchdog
   secondTick.attach(1, ISRwatchdog);
+
+  // MIIO Task
+  xTaskCreatePinnedToCore(MIIOLoop, "miio", 10000, NULL, 1, &MIIOTask, 1);
 }
 
 void p_2_1_valve1_doget(property_operation_t *o) {
@@ -424,12 +434,11 @@ void loop() {
   // webSockets
   webSocket.loop();
 
-  // MIIO
-  miio.loop();
-
   // Upload data every 10 seconds
   if (millis() - lastMillis > 10000) {
     read_data();
     upload(1);
   }
+
+  vTaskDelay(1);
 }
