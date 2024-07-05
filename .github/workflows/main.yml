@@ -20,9 +20,9 @@ jobs:
             build-property: "build.defines=-DCI_TESTING"
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Setup Arduino CLI
-        uses: arduino/setup-arduino-cli@v1
+        uses: arduino/setup-arduino-cli@v2
       - name: Update index
         run: |
           arduino-cli core update-index
