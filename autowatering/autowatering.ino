@@ -308,6 +308,14 @@ void ISRwatchdog() {
   }
 }
 
+void checkButtonTicks() {
+  // include all buttons here to be checked
+  valve1_btn.tick(); // just call tick() to check the state.
+  valve2_btn.tick();
+  valve3_btn.tick();
+  pump_btn.tick();
+}
+
 void setup() {
 #ifdef ENABLE_DEBUG
   Serial.begin(115200);
@@ -318,12 +326,16 @@ void setup() {
   pinMode(VALVE1_PIN, OUTPUT);
   pinMode(VALVE2_PIN, OUTPUT);
   pinMode(VALVE3_PIN, OUTPUT);
-  digitalWrite(PUMP_PIN, LOW);
-  digitalWrite(VALVE1_PIN, LOW);
-  digitalWrite(VALVE2_PIN, LOW);
-  digitalWrite(VALVE3_PIN, LOW); // Off
 
   // Button
+  attachInterrupt(
+      digitalPinToInterrupt(VALVE1_BTN_PIN), checkButtonTicks, CHANGE);
+  attachInterrupt(
+      digitalPinToInterrupt(VALVE2_BTN_PIN), checkButtonTicks, CHANGE);
+  attachInterrupt(
+      digitalPinToInterrupt(VALVE3_BTN_PIN), checkButtonTicks, CHANGE);
+  attachInterrupt(
+      digitalPinToInterrupt(PUMP_BTN_PIN), checkButtonTicks, CHANGE);
   // Single Click event attachment with lambda
   valve1_btn.attachClick([]() {
     DEBUG_PRINTLN("Valve1 Pressed!");
