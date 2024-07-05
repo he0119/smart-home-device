@@ -145,6 +145,13 @@ void upload(bool reset) {
 
   DEBUG_PRINTLN("Upload status");
   DEBUG_PRINTLN(msg);
+
+  // 如果没有网络则不上传
+  if (WiFi.status() != WL_CONNECTED) {
+    DEBUG_PRINTLN("No network, skip upload");
+    return;
+  }
+
   if (!webSocket.sendTXT(msg)) {
     sendFailCount++;
     DEBUG_PRINTLN("Upload failed " + String(sendFailCount) + " times");
@@ -205,17 +212,6 @@ void callback(WStype_t type, uint8_t *payload, size_t length) {
         need_save_config = false;
       }
     }
-  }
-}
-
-void setup_wifi() {
-  delay(10);
-  WiFi.mode(WIFI_STA);
-  // We start by connecting to a WiFi network
-  WiFi.begin(ssid, wifi_password);
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    delay(5000);
-    ESP.restart();
   }
 }
 
@@ -353,7 +349,11 @@ void setup() {
   }
   if (!load_config()) save_config(); // Read config, or save default settings.
 
-  setup_wifi(); // Setup Wi-Fi
+  // Setup Wi-Fi
+  delay(10);
+  WiFi.mode(WIFI_STA);
+  // We start by connecting to a WiFi network
+  WiFi.begin(ssid, wifi_password);
 
   timeClient.begin(); // Start NTP service
 
@@ -380,9 +380,6 @@ void setup() {
 void loop() {
   watchdogCount = 1; // Feed dog
 
-  ArduinoOTA.handle(); // OTA
-  timeClient.update(); // NTP
-
   // keep watching the push button:
   valve1_btn.tick();
   valve2_btn.tick();
@@ -395,12 +392,19 @@ void loop() {
   valve3.tick();
   pump.tick();
 
-  // webSockets
-  webSocket.loop();
-
   // Upload data every 10 seconds
   if (millis() - lastMillis > 10000) {
     read_data();
     upload(1);
+  }
+
+  // Network related
+  // https://github.com/Links2004/arduinoWebSockets/issues/326#issuecomment-395322589
+  // only calling the loop function
+  // when you are sure to have a network connection
+  if (WiFi.status() == WL_CONNECTED) {
+    ArduinoOTA.handle(); // OTA
+    timeClient.update(); // NTP
+    webSocket.loop();
   }
 }
