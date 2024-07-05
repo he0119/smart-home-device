@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/lang/zh-CN/
 
 ## [Unreleased]
 
+### Fixed
+
+- 修复服务器离线后按钮无法响应的问题
+
 ## [0.3.0] - 2022-10-02
 
 ### Added

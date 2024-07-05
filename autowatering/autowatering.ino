@@ -67,6 +67,7 @@ OneButton pump_btn(PUMP_BTN_PIN, false, false);
 Ticker secondTick;
 volatile int watchdogCount = 1;
 volatile int sendFailCount = 0;
+Ticker buttonTick;
 
 // NTP
 #include <NTPClient.h>
@@ -208,17 +209,6 @@ void callback(WStype_t type, uint8_t *payload, size_t length) {
   }
 }
 
-void setup_wifi() {
-  delay(10);
-  WiFi.mode(WIFI_STA);
-  // We start by connecting to a WiFi network
-  WiFi.begin(ssid, wifi_password);
-  while (WiFi.waitForConnectResult() != WL_CONNECTED) {
-    delay(5000);
-    ESP.restart();
-  }
-}
-
 // Read sensor data
 void read_data() {
   int chk = mySensor.read();
@@ -296,10 +286,16 @@ bool save_config() {
 // Watchdog
 void ISRwatchdog() {
   watchdogCount++;
+
+  // Check if any relay is on
+  bool relay_status =
+      valve1.status() || valve2.status() || valve3.status() || pump.status();
   // Not Responding for 60 seconds
   // or if the board failed to send data to server for 6 times
   // it will reset the board.
-  if (watchdogCount > 60 || sendFailCount >= 6) {
+  // 发送失败 6 次重启的前提是所有继电器都是关闭的
+  // 否则会导致继电器状态丢失
+  if (watchdogCount > 60 || (sendFailCount >= 6 && !relay_status)) {
 #ifdef ESP8266
     ESP.reset();
 #else
@@ -353,7 +349,11 @@ void setup() {
   }
   if (!load_config()) save_config(); // Read config, or save default settings.
 
-  setup_wifi(); // Setup Wi-Fi
+  // Setup Wi-Fi
+  delay(10);
+  WiFi.mode(WIFI_STA);
+  // We start by connecting to a WiFi network
+  WiFi.begin(ssid, wifi_password);
 
   timeClient.begin(); // Start NTP service
 
@@ -375,6 +375,21 @@ void setup() {
 
   // Watchdog
   secondTick.attach(1, ISRwatchdog);
+
+  // Button
+  buttonTick.attach_ms(50, []() {
+    // keep watching the push button:
+    valve1_btn.tick();
+    valve2_btn.tick();
+    valve3_btn.tick();
+    pump_btn.tick();
+
+    // Relays
+    valve1.tick();
+    valve2.tick();
+    valve3.tick();
+    pump.tick();
+  });
 }
 
 void loop() {
@@ -382,21 +397,7 @@ void loop() {
 
   ArduinoOTA.handle(); // OTA
   timeClient.update(); // NTP
-
-  // keep watching the push button:
-  valve1_btn.tick();
-  valve2_btn.tick();
-  valve3_btn.tick();
-  pump_btn.tick();
-
-  // Relays
-  valve1.tick();
-  valve2.tick();
-  valve3.tick();
-  pump.tick();
-
-  // webSockets
-  webSocket.loop();
+  webSocket.loop();    // WebSockets
 
   // Upload data every 10 seconds
   if (millis() - lastMillis > 10000) {
