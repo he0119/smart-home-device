@@ -143,6 +143,11 @@ void upload(bool reset) {
   char msg[300];
   serializeJson(doc, msg);
 
+  if (!webSocket.isConnected()) {
+    DEBUG_PRINTLN("Websocket not connected, skip upload");
+    return;
+  }
+
   DEBUG_PRINTLN("Upload status");
   DEBUG_PRINTLN(msg);
   if (!webSocket.sendTXT(msg)) {
