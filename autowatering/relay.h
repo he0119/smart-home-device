@@ -2,8 +2,7 @@
 
 #include "Arduino.h"
 
-class Relay
-{
+class Relay {
 public:
   Relay(int pin);
   /**
