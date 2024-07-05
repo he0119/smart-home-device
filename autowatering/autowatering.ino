@@ -147,12 +147,6 @@ void upload(bool reset) {
   DEBUG_PRINTLN("Upload status");
   DEBUG_PRINTLN(msg);
 
-  // 如果没有连接上服务器，则不上传
-  if (!webSocket.isConnected()) {
-    DEBUG_PRINTLN("Websocket is not connected, skip upload");
-    return;
-  }
-
   if (!webSocket.sendTXT(msg)) {
     sendFailCount++;
     DEBUG_PRINTLN("Upload failed " + String(sendFailCount) + " times");
@@ -290,13 +284,20 @@ bool save_config() {
   return true;
 }
 
+// Check if any relay is on
+bool relays_status() {
+  return valve1.status() || valve2.status() || valve3.status() || pump.status();
+}
+
 // Watchdog
 void ISRwatchdog() {
   watchdogCount++;
   // Not Responding for 60 seconds
   // or if the board failed to send data to server for 6 times
   // it will reset the board.
-  if (watchdogCount > 60 || sendFailCount >= 6) {
+  // 发送失败 6 次重启的前提是所有继电器都是关闭的
+  // 否则会导致继电器状态丢失
+  if (watchdogCount > 60 || (sendFailCount >= 6 && !relays_status())) {
 #ifdef ESP8266
     ESP.reset();
 #else
