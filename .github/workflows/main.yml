@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - 'master'
+      - "master"
   pull_request:
 
 jobs:
@@ -14,10 +14,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - profile: 'esp8266'
+          - profile: "esp8266"
             build-property: 'build.extra_flags="-DCI_TESTING -DESP8266"'
-          - profile: 'esp32'
-            build-property: 'build.defines=-DCI_TESTING'
+          - profile: "esp32"
+            build-property: "build.defines=-DCI_TESTING"
     steps:
       - name: Checkout
         uses: actions/checkout@v2

@@ -31,6 +31,9 @@
 *.out
 *.app
 
+# Node
+node_modules/
+
 # VSCode
 .vscode/*
 !.vscode/settings.json
