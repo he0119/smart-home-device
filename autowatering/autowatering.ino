@@ -67,6 +67,7 @@ OneButton pump_btn(PUMP_BTN_PIN, false, false);
 Ticker secondTick;
 volatile int watchdogCount = 1;
 volatile int sendFailCount = 0;
+Ticker buttonTick;
 
 // NTP
 #include <NTPClient.h>
@@ -147,7 +148,7 @@ void upload(bool reset) {
   DEBUG_PRINTLN(msg);
 
   // 如果没有网络则不上传
-  if (WiFi.status() != WL_CONNECTED) {
+  if (!webSocket.isConnected()) {
     DEBUG_PRINTLN("No network, skip upload");
     return;
   }
@@ -375,22 +376,25 @@ void setup() {
 
   // Watchdog
   secondTick.attach(1, ISRwatchdog);
+
+  // Button
+  buttonTick.attach_ms(50, []() {
+    // keep watching the push button:
+    valve1_btn.tick();
+    valve2_btn.tick();
+    valve3_btn.tick();
+    pump_btn.tick();
+
+    // Relays
+    valve1.tick();
+    valve2.tick();
+    valve3.tick();
+    pump.tick();
+  });
 }
 
 void loop() {
   watchdogCount = 1; // Feed dog
-
-  // keep watching the push button:
-  valve1_btn.tick();
-  valve2_btn.tick();
-  valve3_btn.tick();
-  pump_btn.tick();
-
-  // Relays
-  valve1.tick();
-  valve2.tick();
-  valve3.tick();
-  pump.tick();
 
   // Upload data every 10 seconds
   if (millis() - lastMillis > 10000) {
