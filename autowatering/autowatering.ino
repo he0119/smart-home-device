@@ -147,9 +147,9 @@ void upload(bool reset) {
   DEBUG_PRINTLN("Upload status");
   DEBUG_PRINTLN(msg);
 
-  // 如果没有网络则不上传
+  // 如果没有连接上服务器，则不上传
   if (!webSocket.isConnected()) {
-    DEBUG_PRINTLN("No network, skip upload");
+    DEBUG_PRINTLN("Websocket is not connected, skip upload");
     return;
   }
 
@@ -396,19 +396,13 @@ void setup() {
 void loop() {
   watchdogCount = 1; // Feed dog
 
+  ArduinoOTA.handle(); // OTA
+  timeClient.update(); // NTP
+  webSocket.loop();    // WebSockets
+
   // Upload data every 10 seconds
   if (millis() - lastMillis > 10000) {
     read_data();
     upload(1);
-  }
-
-  // Network related
-  // https://github.com/Links2004/arduinoWebSockets/issues/326#issuecomment-395322589
-  // only calling the loop function
-  // when you are sure to have a network connection
-  if (WiFi.status() == WL_CONNECTED) {
-    ArduinoOTA.handle(); // OTA
-    timeClient.update(); // NTP
-    webSocket.loop();
   }
 }
