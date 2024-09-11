@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches:
-      - "master"
+      - main
   pull_request:
 
 jobs:
@@ -21,12 +21,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
       - name: Setup Arduino CLI
         uses: arduino/setup-arduino-cli@v2
+
       - name: Update index
         run: |
           arduino-cli core update-index
           arduino-cli lib update-index
+
       - name: Compile sketch
         run: arduino-cli compile --build-property ${{ matrix.build-property }} --profile ${{ matrix.profile }} ./autowatering/autowatering.ino
 
